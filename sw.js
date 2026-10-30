@@ -1,7 +1,7 @@
 // オフラインでも開けるようにするための Service Worker（LIFT LOG と同じ方式）。
 // ネットワーク優先（online なら常に最新を取りに行く）＋ 失敗したらキャッシュを返す。
-const CACHE = "meal-log-cache-v1";
-const ASSETS = ["./", "./index.html", "./manifest.json",
+const CACHE = "meal-log-cache-v2";
+const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json",
                 "./fonts/nunito-latin.woff2", "./fonts/mplus.css",
                 "./icons/icon-192.png", "./icons/icon-512.png"];
 
@@ -21,6 +21,7 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  // Firebase など外部ドメインへの通信には触らない（キャッシュすると認証が壊れる）
   if (new URL(event.request.url).origin !== location.origin) return;
   // GitHub Pages は max-age=600 を返すので、HTML/JS/JSON はHTTPキャッシュを迂回して取りに行く
   const path = new URL(event.request.url).pathname;

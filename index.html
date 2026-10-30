@@ -276,6 +276,12 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
 .stats div { font-size: var(--t-xs); color: var(--ink-3); }
 .stats b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 800; }
 
+/* ---------- クラウド同期 ---------- */
+.cloud-row { display: flex; justify-content: space-between; gap: var(--s3); font-weight: 700; }
+.cloud-status { color: var(--ink-3); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cloudCard .btns > [hidden] { display: none; }
+#cloudSignIn { grid-column: 1 / -1; }
+
 /* ---------- トースト ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 144px); z-index: 30;
@@ -386,6 +392,19 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
     <div class="section-label">マイ食品</div>
     <div class="foodlist" id="myFoodList"></div>
 
+    <div id="cloudCard" hidden>
+      <div class="section-label">クラウド同期</div>
+      <div class="card">
+        <div class="cloud-row"><span>アカウント</span><span class="cloud-status num" id="cloudStatus"></span></div>
+        <div class="btns">
+          <button class="btn primary" id="cloudSignIn">Googleでログイン</button>
+          <button class="btn" id="cloudSyncNow" hidden>今すぐ同期</button>
+          <button class="btn" id="cloudSignOut" hidden>ログアウト</button>
+        </div>
+        <p class="hint" style="margin-top:var(--s3)" id="cloudNote"></p>
+      </div>
+    </div>
+
     <div class="section-label">データ</div>
     <div class="card">
       <div class="btns" style="margin-top:0">
@@ -393,7 +412,7 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
         <button class="btn" id="importBtn">読み込み</button>
       </div>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
-      <p class="hint" style="margin-top:var(--s3)">データはこの端末のブラウザの中だけに保存される。機種変更の前に書き出しておくこと。</p>
+      <p class="hint" style="margin-top:var(--s3)">データはこの端末のブラウザに保存される。ログインしていないときは端末どうしで同期しないので、機種変更の前に書き出しておくこと。</p>
     </div>
   </section>
 </main>
@@ -529,12 +548,31 @@ function load() {
     manual: d.manual || null,                          // { k, p, f, c }
     myFoods: d.myFoods || [],
     recent: d.recent || [],                            // 最近使った食品の id（新しい順）
+    // ↓ クラウド同期（firebase-sync.js）用。どの日・設定が、いつ変わり、まだ送っていないか
+    dayAt: d.dayAt || {},                              // { "YYYY-MM-DD": 最後に変えた時刻(ms) }
+    settingsAt: d.settingsAt || 0,                     // profile / mode / manual / myFoods を最後に変えた時刻
+    dirtyDays: d.dirtyDays || [],                      // まだクラウドに送っていない日
+    settingsDirty: !!d.settingsDirty,
   };
 }
 let state = load();
-function save() {
+// 端末に書くだけ。同期の側から呼ぶときはこちら（save だと同期がまた走るため）
+function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); }
   catch (e) { alert("保存できませんでした（ブラウザの容量がいっぱいかもしれません）"); }
+}
+function save() {
+  persist();
+  if (window.cloudSync) window.cloudSync();   // ログイン中ならクラウドにも反映
+}
+// 記録・設定を変えたら印を付ける。同期はこの印を見て、変わったものだけを送る
+function touchDay(d) {
+  state.dayAt[d] = Date.now();
+  if (!state.dirtyDays.includes(d)) state.dirtyDays.push(d);
+}
+function touchSettings() {
+  state.settingsAt = Date.now();
+  state.settingsDirty = true;
 }
 
 /* ==========================================================================
@@ -782,8 +820,9 @@ function openAmount(food, meal, entry) {
   $("#mealSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { mealId = b.dataset.v; setSeg("#mealSeg", mealId); } };
   if (entry) {
     $("#qDelete").onclick = () => {
+      // 空になった日も [] のまま残す（同期で「この日は空にした」と他の端末へ伝えるため）
       state.days[day] = entriesOf(day).filter(e => e.id !== entry.id);
-      if (!state.days[day].length) delete state.days[day];
+      touchDay(day);
       save(); closeSheet(); renderToday(); toast("削除しました");
     };
   } else {
@@ -802,6 +841,7 @@ function openAmount(food, meal, entry) {
       state.recent = [food.id, ...state.recent.filter(id => id !== food.id)].slice(0, 20);
       toast(`${food.name}を追加しました`);
     }
+    touchDay(day);
     save(); closeSheet(); renderToday();
   };
   update();
@@ -834,7 +874,7 @@ function openManual(meal) {
     const p = n("#mP"), f = n("#mF"), c = n("#mC");
     const k = $("#mK").value.trim() ? n("#mK") : p * 4 + f * 9 + c * 4;
     const food = { id: "my-" + uid(), name, unit: $("#mUnit").value.trim() || "1食", k, p, f, c };
-    if ($("#mSave").checked) { state.myFoods.unshift(food); save(); }
+    if ($("#mSave").checked) { state.myFoods.unshift(food); touchSettings(); save(); }
     openAmount(food, meal);
   };
 }
@@ -912,22 +952,22 @@ function renderSettings() {
 
 PF.forEach(k => $("#" + k).addEventListener("input", e => {
   const v = parseFloat(e.target.value);
-  if (v > 0) { state.profile[k] = v; save(); renderSettings(); }
+  if (v > 0) { state.profile[k] = v; touchSettings(); save(); renderSettings(); }
 }));
-$("#activity").onchange = e => { state.profile.activity = parseFloat(e.target.value); save(); renderSettings(); };
-$("#sexSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.sex = b.dataset.v; save(); renderSettings(); } };
-$("#goalSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.goal = b.dataset.v; save(); renderSettings(); } };
+$("#activity").onchange = e => { state.profile.activity = parseFloat(e.target.value); touchSettings(); save(); renderSettings(); };
+$("#sexSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.sex = b.dataset.v; touchSettings(); save(); renderSettings(); } };
+$("#goalSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.goal = b.dataset.v; touchSettings(); save(); renderSettings(); } };
 function startManual() { const c = calcTargets(state.profile); state.manual = { k: c.k, p: c.p, f: c.f, c: c.c }; }
 $("#modeSeg").onclick = e => {
   const b = e.target.closest("[data-v]"); if (!b) return;
   if (b.dataset.v === "manual" && !state.manual) startManual();
-  state.mode = b.dataset.v; save(); renderSettings();
+  state.mode = b.dataset.v; touchSettings(); save(); renderSettings();
 };
 TF.forEach(([id, k]) => $("#" + id).addEventListener("input", e => {
   const v = parseFloat(e.target.value);
   if (!(v >= 0)) return;
   if (state.mode !== "manual") { startManual(); state.mode = "manual"; }
-  state.manual[k] = Math.round(v); save(); renderSettings();
+  state.manual[k] = Math.round(v); touchSettings(); save(); renderSettings();
 }));
 $("#myFoodList").onclick = e => {
   const b = e.target.closest("[data-delfood]"); if (!b) return;
@@ -935,7 +975,7 @@ $("#myFoodList").onclick = e => {
   if (!f || !confirm(`「${f.name}」をマイ食品から削除しますか？（過去の記録は残ります）`)) return;
   state.myFoods = state.myFoods.filter(x => x.id !== f.id);
   state.recent = state.recent.filter(id => id !== f.id);
-  save(); renderSettings(); toast("削除しました");
+  touchSettings(); save(); renderSettings(); toast("削除しました");
 };
 
 $("#exportBtn").onclick = () => {
@@ -956,8 +996,15 @@ $("#importFile").onchange = async e => {
     if (!d || typeof d.days !== "object") throw new Error("MEAL LOG の書き出しファイルではありません");
     if (!confirm("今のデータを、読み込んだファイルの内容で置き換えますか？")) return;
     const { days, profile, mode, manual, myFoods, recent } = d;
+    // 読み込んだ内容を「今いちばん新しい」ものとして扱い、同期で他の端末へ広げる。
+    // ファイルに無い日は空にして、クラウドから古い記録が戻ってこないようにする
+    const before = Object.keys(state.days);
     localStorage.setItem(KEY, JSON.stringify({ days, profile, mode, manual, myFoods, recent }));
-    state = load(); renderAll(); toast("読み込みました");
+    state = load();
+    for (const k of before) if (!state.days[k]) state.days[k] = [];
+    Object.keys(state.days).forEach(touchDay);
+    touchSettings();
+    save(); renderAll(); toast("読み込みました");
   } catch (err) { alert("読み込めませんでした：" + err.message); }
 };
 
@@ -998,8 +1045,16 @@ $("#rangeSeg").onclick = e => {
 };
 $("#dayList").onclick = e => { const b = e.target.closest("[data-day]"); if (b) { day = b.dataset.day; showTab("today"); } };
 
-// 開きっぱなしで日付が変わっても「今日」が古くならないように、画面に戻ってきたら描き直す
-document.addEventListener("visibilitychange", () => { if (!document.hidden) renderAll(); });
+// 開きっぱなしで日付が変わっても「今日」が古くならないように、画面に戻ってきたら描き直す。
+// ログイン中なら、ほかの端末で付けた記録もこのとき取り込む
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  renderAll();
+  if (window.cloudSync) window.cloudSync();
+});
+
+// firebase-sync.js から使う入口。state は読み込み直しで入れ替わるので、毎回関数で渡す
+window.mealApp = { getState: () => state, persist, render: () => renderAll() };
 
 showTab("today");
 
@@ -1007,5 +1062,6 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 </script>
+<script type="module" src="firebase-sync.js"></script>
 </body>
 </html>
