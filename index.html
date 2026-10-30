@@ -111,12 +111,27 @@ button { cursor: pointer; }
 main {
   max-width: 560px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + var(--s4)) var(--s4) calc(env(safe-area-inset-bottom) + 96px);
+  padding: calc(env(safe-area-inset-top) + 44px) var(--s4) calc(env(safe-area-inset-bottom) + 96px);
 }
 .view[hidden] { display: none; }
 
+/* ---------- 上のバー（純正アプリと同じく、大きい見出しが隠れたら小さい見出しを出す） ---------- */
+.toolbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9;
+  height: calc(44px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: .5px solid transparent;
+  transition: background .2s, border-color .2s;
+}
+body.scrolled .toolbar {
+  background: var(--glass); border-bottom-color: var(--line);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+.toolbar .t { font-size: 17px; font-weight: 700; opacity: 0; transition: opacity .2s; }
+body.scrolled .toolbar .t { opacity: 1; }
+
 /* ---------- 見出しと日付 ---------- */
-.titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3); margin: var(--s2) 0 var(--s4); }
+.titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s4); }
 h1 { font-size: var(--t-title); font-weight: 800; letter-spacing: .01em; margin: 0; line-height: 1.1; }
 .datenav { display: flex; align-items: center; gap: var(--s1); }
 .datenav > button {
@@ -124,8 +139,12 @@ h1 { font-size: var(--t-title); font-weight: 800; letter-spacing: .01em; margin:
   background: var(--fill); display: grid; place-items: center;
 }
 .datenav > button:disabled { opacity: .35; cursor: default; }
-.datenav .label { min-width: 104px; text-align: center; font-weight: 700; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.3; }
-.datenav .label button { border: 0; background: none; padding: 0; font-weight: 700; font-size: var(--t-xs); color: var(--accent); }
+.datenav .label { min-width: 104px; text-align: center; font-weight: 700; font-size: var(--t-sm); line-height: 1.3; }
+/* 日付の文字の上に透明な日付入力を重ねる。タップすると iPhone 標準の日付選択が開く */
+.datepick { position: relative; display: inline-block; color: var(--accent); }
+.datepick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; min-height: 0; cursor: pointer; }
+.datenav .label .go[hidden] { display: none; }
+.datenav .label .go { display: block; margin: 0 auto; border: 0; background: none; padding: 0; font-weight: 700; font-size: var(--t-xs); color: var(--ink-3); }
 
 .card {
   background: var(--panel);
@@ -136,23 +155,18 @@ h1 { font-size: var(--t-title); font-weight: 800; letter-spacing: .01em; margin:
 .card h2 { font-size: var(--t-md); margin: 0 0 var(--s3); font-weight: 800; }
 .section-label { font-size: var(--t-sm); color: var(--ink-3); margin: var(--s5) var(--s4) var(--s2); }
 
-/* ---------- 今日の合計 ---------- */
-.summary { display: grid; grid-template-columns: 132px 1fr; gap: var(--s4); align-items: center; }
-.ring { position: relative; width: 132px; height: 132px; }
-.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.ring .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.ring .big { font-size: 28px; font-weight: 800; line-height: 1; }
-.ring .small { font-size: var(--t-xs); color: var(--ink-3); margin-top: 2px; }
-.ring.over .big { color: var(--crit); }
-.macros { display: grid; gap: var(--s3); min-width: 0; }
-.macro .row { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--t-sm); gap: var(--s2); }
-.macro .name { font-weight: 800; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.macro .val { color: var(--ink-3); white-space: nowrap; }
-.macro .val b { color: var(--ink); font-weight: 800; }
-.bar { height: 8px; border-radius: var(--r-pill); background: var(--track); overflow: hidden; margin-top: 4px; }
-.bar > i { display: block; height: 100%; border-radius: inherit; transition: width .4s var(--spring); }
-.macro.over .val b { color: var(--crit); }
+/* ---------- 今日の合計（フィットネスアプリのアクティビティリング風） ----------
+   外から カロリー → P → F → C の輪。目標を超えた分は2周目として重ね、先端に影を付けて重なりを見せる */
+.summary { display: grid; grid-template-columns: 148px 1fr; gap: var(--s4); align-items: center; }
+.rings { width: 148px; height: 148px; }
+.rings svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.rings circle { fill: none; stroke-linecap: round; }
+.rings .arc { transition: stroke-dashoffset .6s var(--spring); }
+.legend-rows { display: grid; gap: 10px; min-width: 0; }
+.lg .name { font-size: var(--t-sm); font-weight: 800; }
+.lg .val { font-size: var(--t-lg); font-weight: 800; line-height: 1.15; white-space: nowrap; }
+.lg .val small { font-size: var(--t-sm); font-weight: 700; }
+.lg.over .val { color: var(--crit); }
 
 .remain { display: flex; justify-content: space-around; text-align: center; margin-top: var(--s4); padding-top: var(--s3); border-top: .5px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
 .remain b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 800; }
@@ -169,22 +183,42 @@ h1 { font-size: var(--t-title); font-weight: 800; letter-spacing: .01em; margin:
 .meal-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s3) var(--s4); }
 .meal-head .t { font-weight: 800; }
 .meal-head .k { font-size: var(--t-sm); color: var(--ink-3); }
+/* 行。区切り線は純正の一覧と同じく、左端から少し内側で始める（::before）。
+   タップで先へ進む行には右端に「＞」（.chev）を付ける */
 .item {
-  display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s3); width: 100%;
-  text-align: left; border: 0; background: none; padding: var(--s3) var(--s4);
-  border-top: .5px solid var(--line); align-items: center;
+  position: relative;
+  display: grid; grid-template-columns: 1fr auto auto; gap: 2px var(--s3); width: 100%;
+  text-align: left; border: 0; background: var(--panel); padding: var(--s3) var(--s4);
+  align-items: center;
+}
+.item::before, .add-row::before {
+  content: ""; position: absolute; top: 0; left: var(--s4); right: 0;
+  border-top: .5px solid var(--line);
 }
 button.item:active { background: var(--press); }
 .item .n { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .kc { font-weight: 800; text-align: right; }
-.item .sub { font-size: var(--t-xs); color: var(--ink-3); grid-column: 1 / -1; display: flex; gap: var(--s3); flex-wrap: wrap; }
+.item .sub { font-size: var(--t-xs); color: var(--ink-3); grid-column: 1 / 3; display: flex; gap: var(--s3); flex-wrap: wrap; }
+.chev { grid-column: 3; grid-row: 1 / span 2; width: 8px; height: 14px; color: var(--ink-3); opacity: .6; }
+
+/* 左へスワイプすると出る操作（サブスク管理と同じ作り） */
+.sw { position: relative; overflow: hidden; touch-action: pan-y; }
+.sw > .item { transform: translateX(var(--sx, 0px)); }
+.sw.sw-anim > .item { transition: transform 300ms var(--spring); }
+.sw-acts {
+  position: absolute; top: 0; bottom: 0; right: 0; display: flex;
+  transform: translateX(calc(100% + var(--sx, 0px)));
+}
+.sw.sw-anim > .sw-acts { transition: transform 300ms var(--spring); }
+.sw-acts button { border: 0; min-width: 80px; padding: 0 var(--s4); color: #fff; font-weight: 700; background: #ff3b30; }
 .pfc-mini span::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 .pfc-mini .P::before { background: var(--p); }
 .pfc-mini .F::before { background: var(--f); }
 .pfc-mini .C::before { background: var(--c); }
 .pfc-mini { display: inline-flex; gap: var(--s2); }
 .add-row {
-  width: 100%; border: 0; border-top: .5px solid var(--line); background: none;
+  position: relative;
+  width: 100%; border: 0; background: none;
   padding: var(--s3) var(--s4); text-align: left; color: var(--accent); font-weight: 700;
 }
 .add-row:active { background: var(--press); }
@@ -249,7 +283,12 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
   box-shadow: var(--shadow-pop); transform: translateY(100%); transition: transform .38s var(--spring);
 }
 .sheet.open { transform: none; }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s4) var(--s4) var(--s2); }
+.sheet.dragging { transition: none; }
+.grabber, .sheet-head { -webkit-user-select: none; user-select: none; }
+/* 上端の取っ手。ここと見出しの部分を下へ引くと閉じる */
+.grabber { flex: none; height: 20px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.grabber::before { content: ""; width: 36px; height: 5px; border-radius: 3px; background: var(--ink-3); opacity: .45; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: 0 var(--s4) var(--s2); touch-action: none; }
 .sheet-head h3 { margin: 0; font-size: var(--t-lg); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-head .x { flex: none; border: 0; background: var(--fill); width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); }
 .sheet-body { overflow-y: auto; padding: var(--s2) var(--s4) calc(env(safe-area-inset-bottom) + var(--s5)); overscroll-behavior: contain; }
@@ -259,7 +298,7 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
 .chip { flex: none; border: 0; border-radius: var(--r-pill); padding: 7px 14px; background: var(--fill); font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); }
 .chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
 .foodlist { background: var(--panel); border-radius: var(--r-md); overflow: hidden; }
-.foodlist > .item:first-child { border-top: 0; }
+.foodlist > :first-child::before, .foodlist > .sw:first-child > .item::before { display: none; }
 .empty { text-align: center; color: var(--ink-3); padding: var(--s5) var(--s4); font-size: var(--t-sm); }
 .tag { font-size: 10px; font-weight: 700; color: var(--ink-3); background: var(--fill); border-radius: 4px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; }
 
@@ -292,11 +331,14 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
   font-size: var(--t-sm); font-weight: 700; transition: all .25s var(--spring); white-space: nowrap;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.show:has(button) { pointer-events: auto; }
+.toast button { border: 0; background: none; color: #7ee2a8; font-weight: 800; margin-left: var(--s3); padding: 0; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
+<header class="toolbar" aria-hidden="true"><span class="t" id="tbTitle"></span></header>
 <main>
   <!-- ===== 今日 ===== -->
   <section class="view" id="view-today">
@@ -304,15 +346,18 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
       <h1 id="todayTitle">今日</h1>
       <div class="datenav">
         <button id="prevDay" aria-label="前の日"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <div class="label num" id="dateLabel"></div>
+        <div class="label num">
+          <span class="datepick"><span id="dateText"></span><input type="date" id="datePick" aria-label="日付を選ぶ"></span>
+          <button class="go" id="goToday" hidden>今日へ戻る</button>
+        </div>
         <button id="nextDay" aria-label="次の日"><svg width="16" height="16" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
     </div>
 
     <div class="card">
       <div class="summary">
-        <div class="ring" id="ring"></div>
-        <div class="macros" id="macros"></div>
+        <div class="rings" id="rings"></div>
+        <div class="legend-rows" id="legendRows"></div>
       </div>
       <div class="remain" id="remain"></div>
       <div class="ratio" id="ratio"></div>
@@ -439,6 +484,7 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
 
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="grabber" aria-hidden="true"></div>
   <div class="sheet-head">
     <h3 id="sheetTitle"></h3>
     <button class="x" id="sheetClose" aria-label="閉じる"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2 2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -624,14 +670,24 @@ function addDays(s, n) { const d = parseYmd(s); d.setDate(d.getDate() + n); retu
 const WD = ["日", "月", "火", "水", "木", "金", "土"];
 function mdw(s) { const d = parseYmd(s); return `${d.getMonth() + 1}月${d.getDate()}日(${WD[d.getDay()]})`; }
 
+// 下に短く出す通知。undo を渡すと「元に戻す」ボタンを付けて、少し長めに出す
 let toastTimer;
-function toast(msg) {
+function toast(msg, undo) {
   const el = $("#toast");
   el.textContent = msg;
+  if (undo) {
+    const b = document.createElement("button");
+    b.textContent = "元に戻す";
+    b.onclick = () => { el.classList.remove("show"); undo(); };
+    el.appendChild(b);
+  }
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+  toastTimer = setTimeout(() => el.classList.remove("show"), undo ? 4000 : 1800);
 }
+
+const CHEVRON = '<svg class="chev" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" ' +
+                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 1.5 7 7l-5.5 5.5"/></svg>';
 
 /* ==========================================================================
    今日の画面
@@ -643,34 +699,41 @@ function entriesOf(d) { return state.days[d] || []; }
 function renderToday() {
   const today = ymd(new Date());
   if (day > today) day = today;
-  $("#todayTitle").textContent = day === today ? "今日" : day === addDays(today, -1) ? "昨日" : "記録";
-  $("#dateLabel").innerHTML = day === today ? mdw(day) : `${mdw(day)}<br><button id="goToday">今日へ戻る</button>`;
+  const title = day === today ? "今日" : day === addDays(today, -1) ? "昨日" : "記録";
+  $("#todayTitle").textContent = title;
+  $("#tbTitle").textContent = day === today ? title : mdw(day);
+  $("#dateText").textContent = mdw(day);
+  $("#datePick").value = day;
+  $("#datePick").max = today;
+  $("#goToday").hidden = day === today;
   $("#nextDay").disabled = day >= today;
-  const goBtn = $("#goToday");
-  if (goBtn) goBtn.onclick = () => { day = today; renderToday(); };
 
   const list = entriesOf(day);
   const t = totals(list), g = targets();
 
-  // カロリーの輪
-  const R = 56, L = 2 * Math.PI * R, pct = g.k ? t.k / g.k : 0, over = t.k > g.k;
-  $("#ring").className = "ring" + (over ? " over" : "");
-  $("#ring").innerHTML = `
-    <svg viewBox="0 0 132 132" aria-hidden="true">
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--track)" stroke-width="12"/>
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="${over ? "var(--crit)" : "var(--accent)"}" stroke-width="12"
-        stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L * (1 - Math.min(1, pct))}"
-        style="transition: stroke-dashoffset .5s var(--spring)"/>
-    </svg>
-    <div class="center"><div class="big num">${r0(t.k)}</div><div class="small num">/ ${g.k} kcal</div></div>`;
-
-  // P / F / C のバー
-  $("#macros").innerHTML = [["p", "たんぱく質"], ["f", "脂質"], ["c", "炭水化物"]].map(([key, name]) => {
-    const v = t[key], goal = g[key], w = goal ? Math.min(100, v / goal * 100) : 0;
-    return `<div class="macro${goal && v > goal * 1.1 ? " over" : ""}">
-      <div class="row"><span class="name"><i class="dot" style="background:var(--${key})"></i>${name}</span>
-      <span class="val num"><b>${r0(v)}</b> / ${goal}g</span></div>
-      <div class="bar"><i style="width:${w}%;background:var(--${key})"></i></div></div>`;
+  // アクティビティリング。外から カロリー・P・F・C
+  const RINGS = [
+    { key: "k", name: "カロリー",   unit: "kcal", color: "var(--accent)" },
+    { key: "p", name: "たんぱく質", unit: "g",    color: "var(--p)" },
+    { key: "f", name: "脂質",       unit: "g",    color: "var(--f)" },
+    { key: "c", name: "炭水化物",   unit: "g",    color: "var(--c)" },
+  ];
+  const SW = 13, GAP = 2;
+  $("#rings").innerHTML = `<svg viewBox="0 0 148 148" aria-hidden="true">${RINGS.map((r, i) => {
+    const R = 74 - SW / 2 - i * (SW + GAP), L = 2 * Math.PI * R;
+    const pct = g[r.key] ? t[r.key] / g[r.key] : 0;
+    const arc = (p, extra) => `<circle class="arc" cx="74" cy="74" r="${R}" stroke="${r.color}" stroke-width="${SW}"
+      stroke-dasharray="${L}" stroke-dashoffset="${L * (1 - Math.min(1, p))}" ${extra}/>`;
+    return `<circle cx="74" cy="74" r="${R}" stroke="color-mix(in srgb, ${r.color} 22%, transparent)" stroke-width="${SW}"/>`
+      + (pct > 0 ? arc(pct, "") : "")
+      // 2周目：目標を超えた分。影で1周目との重なりを見せる
+      + (pct > 1 ? arc(pct - 1, 'style="filter: drop-shadow(0 0 2.5px rgba(0,0,0,.45))"') : "");
+  }).join("")}</svg>`;
+  $("#legendRows").innerHTML = RINGS.map(r => {
+    const v = t[r.key], goal = g[r.key];
+    return `<div class="lg${goal && v > goal * 1.1 ? " over" : ""}">
+      <div class="name" style="color:${r.color}">${r.name}</div>
+      <div class="val num">${r0(v)}<small> / ${goal}${r.unit}</small></div></div>`;
   }).join("");
 
   // 残り。超えた分は＋で出す
@@ -710,10 +773,25 @@ function pfcMini(p, f, c) {
 }
 
 function itemHtml(e) {
-  return `<button class="item" data-edit="${e.id}">
-    <span class="n">${esc(e.name)}</span><span class="kc num">${r0(e.k * e.qty)} kcal</span>
+  return `<div class="sw" data-swipe-entry="${e.id}"><button class="item" data-edit="${e.id}">
+    <span class="n">${esc(e.name)}</span><span class="kc num">${r0(e.k * e.qty)} kcal</span>${CHEVRON}
     <span class="sub num"><span>${esc(e.unit)} × ${fmtQty(e.qty)}</span>${pfcMini(e.p * e.qty, e.f * e.qty, e.c * e.qty)}</span>
-  </button>`;
+  </button></div>`;
+}
+
+// 記録を1件消す。消したあと数秒は「元に戻す」で同じ位置に戻せる
+function deleteEntry(id) {
+  const d = day, list = entriesOf(d), i = list.findIndex(e => e.id === id);
+  if (i < 0) return;
+  const [removed] = list.splice(i, 1);
+  // 空になった日も [] のまま残す（同期で「この日は空にした」と他の端末へ伝えるため）
+  state.days[d] = list;
+  touchDay(d); save(); renderToday();
+  toast(`${removed.name}を削除しました`, () => {
+    const arr = state.days[d] || (state.days[d] = []);
+    arr.splice(Math.min(i, arr.length), 0, removed);
+    touchDay(d); save(); renderToday();
+  });
 }
 
 /* ==========================================================================
@@ -726,16 +804,115 @@ function openSheet(title, html) {
   $("#sheetTitle").textContent = title;
   $("#sheetBody").innerHTML = html;
   $("#sheetBody").scrollTop = 0;
+  delete sheet.dataset.dirty;
+  $("#sheetBody").oninput = null;
+  sheet.style.transform = "";
   sheet.hidden = scrim.hidden = false;
   requestAnimationFrame(() => { sheet.classList.add("open"); scrim.classList.add("open"); });
 }
 function closeSheet() {
   sheet.classList.remove("open"); scrim.classList.remove("open");
-  sheetTimer = setTimeout(() => { sheet.hidden = scrim.hidden = true; }, 300);
+  sheetTimer = setTimeout(() => { sheet.hidden = scrim.hidden = true; sheet.style.transform = ""; }, 300);
 }
 $("#sheetClose").onclick = closeSheet;
 scrim.onclick = closeSheet;
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+
+// シートを引き下ろして閉じる（サブスク管理と同じ作り）。取っ手と見出しの部分だけで引ける
+(function sheetDrag() {
+  let dragging = false, y0 = 0, dy = 0, t0 = 0;
+  sheet.addEventListener("pointerdown", e => {
+    if (!e.target.closest(".grabber, .sheet-head") || e.target.closest("button")) return;
+    dragging = true; y0 = e.clientY; dy = 0; t0 = performance.now();
+    sheet.classList.add("dragging");
+    sheet.setPointerCapture?.(e.pointerId);
+  });
+  sheet.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    dy = Math.max(0, e.clientY - y0);
+    sheet.style.transform = `translateY(${dy}px)`;
+    scrim.style.opacity = String(1 - Math.min(1, dy / sheet.offsetHeight));
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.classList.remove("dragging");
+    scrim.style.opacity = "";
+    const fast = dy / Math.max(1, performance.now() - t0) > 0.6;
+    // 手入力の途中は、引き下ろしでは閉じない（書いた内容が消えるため）
+    if (!sheet.dataset.dirty && (dy > sheet.offsetHeight * 0.3 || (fast && dy > 40))) {
+      sheet.style.transform = "translateY(100%)";
+      closeSheet();
+    } else {
+      sheet.style.transform = "";
+    }
+  };
+  sheet.addEventListener("pointerup", end);
+  sheet.addEventListener("pointercancel", end);
+})();
+
+/* ---------- 左へスワイプして削除（サブスク管理と同じ作り。指で触る画面だけ） ---------- */
+let swOpen = null, swEatClick = false;
+function swSet(row, x, anim) {
+  row.classList.toggle("sw-anim", !!anim);
+  row.style.setProperty("--sx", x + "px");
+}
+function swClose(row) {
+  if (!row) return;
+  swSet(row, 0, true);
+  setTimeout(() => { if (row !== swOpen) row.querySelector(".sw-acts")?.remove(); }, 320);
+  if (swOpen === row) swOpen = null;
+}
+(function swipe() {
+  let row = null, x0 = 0, y0 = 0, dx = 0, mode = "", base = 0, width = 0;
+  document.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1) return;
+    const r = e.target.closest(".sw");
+    if (swOpen && swOpen !== r) swClose(swOpen);
+    if (!r || e.target.closest(".sw-acts")) { row = null; return; }
+    row = r; mode = ""; dx = 0;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    base = r === swOpen ? -(r.querySelector(".sw-acts")?.offsetWidth || 0) : 0;
+  }, { passive: true });
+  document.addEventListener("touchmove", e => {
+    if (!row) return;
+    const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+    if (!mode) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      mode = Math.abs(mx) > Math.abs(my) ? "h" : "v";
+      if (mode === "h" && !row.querySelector(".sw-acts")) {
+        const acts = document.createElement("div");
+        acts.className = "sw-acts";
+        acts.innerHTML = '<button type="button" data-sw-delete>削除</button>';
+        row.appendChild(acts);
+      }
+      if (mode === "h") width = row.querySelector(".sw-acts").offsetWidth;
+    }
+    if (mode !== "h") return;
+    e.preventDefault();
+    dx = Math.min(0, base + mx);
+    // ボタンの幅を超えて引くと重くなる（iOS のゴム状の抵抗）
+    const over = -dx - width;
+    swSet(row, over > 0 ? -(width + over * 0.35) : dx, false);
+  }, { passive: false });
+  document.addEventListener("touchend", () => {
+    if (!row || mode !== "h") { row = null; return; }
+    const r = row; row = null; swEatClick = true; setTimeout(() => { swEatClick = false; }, 350);
+    if (-dx > r.offsetWidth * 0.6) { swClose(r); swDelete(r); return; }   // 端まで引き切ったらそのまま削除
+    if (-dx > width / 2) { swOpen = r; swSet(r, -width, true); }
+    else swClose(r);
+  });
+  // 引いた直後に起きるクリックで、編集画面が開かないようにする
+  document.addEventListener("click", e => {
+    if (swEatClick && !e.target.closest(".sw-acts")) { e.stopPropagation(); e.preventDefault(); return; }
+    const del = e.target.closest("[data-sw-delete]");
+    if (del) { const r = del.closest(".sw"); swClose(r); swDelete(r); }
+  }, true);
+})();
+function swDelete(row) {
+  if (row.dataset.swipeEntry) deleteEntry(row.dataset.swipeEntry);
+  else if (row.dataset.swipeFood) deleteMyFood(row.dataset.swipeFood);
+}
 
 // ＋ボタンから開いたときは、時間帯で食事を決めておく
 function guessMeal() {
@@ -782,7 +959,7 @@ function renderPicker() {
   $("#foodResults").innerHTML = list.length ? list.map(f => `
     <button class="item" data-food="${esc(f.id)}">
       <span class="n">${esc(f.name)}${f.est ? '<span class="tag">目安</span>' : ""}</span><span class="kc num">${r0(f.k)} kcal</span>
-      <span class="sub num"><span>${esc(f.unit)}</span>${pfcMini(f.p, f.f, f.c)}</span>
+      ${CHEVRON}<span class="sub num"><span>${esc(f.unit)}</span>${pfcMini(f.p, f.f, f.c)}</span>
     </button>`).join("") : `<div class="empty">${empty}</div>`;
 }
 
@@ -821,12 +998,7 @@ function openAmount(food, meal, entry) {
   input.oninput = () => { const v = parseFloat(input.value); if (v > 0) { qty = v; preview(); } };
   $("#mealSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { mealId = b.dataset.v; setSeg("#mealSeg", mealId); } };
   if (entry) {
-    $("#qDelete").onclick = () => {
-      // 空になった日も [] のまま残す（同期で「この日は空にした」と他の端末へ伝えるため）
-      state.days[day] = entriesOf(day).filter(e => e.id !== entry.id);
-      touchDay(day);
-      save(); closeSheet(); renderToday(); toast("削除しました");
-    };
+    $("#qDelete").onclick = () => { closeSheet(); deleteEntry(entry.id); };
   } else {
     $("#qBack").onclick = () => openPicker(mealId);
   }
@@ -868,6 +1040,7 @@ function openManual(meal) {
       <button class="btn" id="mBack">戻る</button>
       <button class="btn primary" id="mNext">次へ</button>
     </div>`);
+  $("#sheetBody").oninput = () => { sheet.dataset.dirty = "1"; };   // 書き始めたら引き下ろしでは閉じない
   $("#mBack").onclick = () => openPicker(meal);
   $("#mNext").onclick = () => {
     const name = $("#mName").value.trim();
@@ -902,7 +1075,7 @@ function renderHistory() {
   const all = Object.keys(state.days).filter(d => state.days[d].length).sort().reverse();
   $("#dayList").innerHTML = all.length ? all.slice(0, 60).map(d => {
     const t = totals(state.days[d]);
-    return `<button class="item" data-day="${d}"><span class="n num">${mdw(d)}</span><span class="kc num">${r0(t.k)} kcal</span>
+    return `<button class="item" data-day="${d}"><span class="n num">${mdw(d)}</span><span class="kc num">${r0(t.k)} kcal</span>${CHEVRON}
       <span class="sub num">${pfcMini(t.p, t.f, t.c)}</span></button>`;
   }).join("") : '<div class="empty">まだ記録がない</div>';
 }
@@ -945,11 +1118,12 @@ function renderSettings() {
     `ここから計算した目標は ${c.k} kcal / P ${c.p}g / F ${c.f}g / C ${c.c}g。`;
   TF.forEach(([id, k]) => { if (document.activeElement !== $("#" + id)) $("#" + id).value = g[k]; });
 
+  // スマホでは左へスワイプして削除。指で触れない PC 用に「削除」ボタンも残す
   $("#myFoodList").innerHTML = state.myFoods.length ? state.myFoods.map(f => `
-    <div class="item"><span class="n">${esc(f.name)}</span>
+    <div class="sw" data-swipe-food="${esc(f.id)}"><div class="item"><span class="n">${esc(f.name)}</span>
       <button class="chip" data-delfood="${esc(f.id)}" style="color:var(--crit)">削除</button>
       <span class="sub num"><span>${esc(f.unit)}・${r0(f.k)} kcal</span>${pfcMini(f.p, f.f, f.c)}</span>
-    </div>`).join("") : '<div class="empty">手入力で保存した食品がここに並ぶ</div>';
+    </div></div>`).join("") : '<div class="empty">手入力で保存した食品がここに並ぶ</div>';
 }
 
 PF.forEach(k => $("#" + k).addEventListener("input", e => {
@@ -972,13 +1146,19 @@ TF.forEach(([id, k]) => $("#" + id).addEventListener("input", e => {
   state.manual[k] = Math.round(v); touchSettings(); save(); renderSettings();
 }));
 $("#myFoodList").onclick = e => {
-  const b = e.target.closest("[data-delfood]"); if (!b) return;
-  const f = state.myFoods.find(x => x.id === b.dataset.delfood);
-  if (!f || !confirm(`「${f.name}」をマイ食品から削除しますか？（過去の記録は残ります）`)) return;
-  state.myFoods = state.myFoods.filter(x => x.id !== f.id);
-  state.recent = state.recent.filter(id => id !== f.id);
-  touchSettings(); save(); renderSettings(); toast("削除しました");
+  const b = e.target.closest("[data-delfood]"); if (b) deleteMyFood(b.dataset.delfood);
 };
+// マイ食品を消す（過去の記録は値を写して持っているので残る）。少しの間は「元に戻す」で戻せる
+function deleteMyFood(id) {
+  const i = state.myFoods.findIndex(x => x.id === id);
+  if (i < 0) return;
+  const [f] = state.myFoods.splice(i, 1);
+  touchSettings(); save(); renderSettings();
+  toast(`${f.name}を削除しました`, () => {
+    state.myFoods.splice(Math.min(i, state.myFoods.length), 0, f);
+    touchSettings(); save(); renderSettings();
+  });
+}
 
 $("#exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify({ app: "meal-log", version: 1, exportedAt: new Date().toISOString(), ...state }, null, 2)], { type: "application/json" });
@@ -1021,9 +1201,13 @@ function showTab(t) {
   });
   ["today", "history", "settings"].forEach(v => { $("#view-" + v).hidden = v !== t; });
   $("#fab").hidden = t !== "today";
+  if (t !== "today") $("#tbTitle").textContent = $(`#view-${t} h1`).textContent;   // 今日は renderToday が決める
   renderAll();
   window.scrollTo(0, 0);
+  document.body.classList.remove("scrolled");
 }
+// 大きい見出しが画面の外に出たら、上のバーをすりガラスにして小さい見出しを出す（LIFT LOG と同じ）
+addEventListener("scroll", () => document.body.classList.toggle("scrolled", scrollY > 40), { passive: true });
 function renderAll() {
   if (tab === "today") renderToday();
   if (tab === "history") renderHistory();
@@ -1031,6 +1215,11 @@ function renderAll() {
 }
 document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 $("#prevDay").onclick = () => { day = addDays(day, -1); renderToday(); };
+$("#goToday").onclick = () => { day = ymd(new Date()); renderToday(); };
+$("#datePick").onchange = e => {
+  const v = e.target.value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { day = v; renderToday(); }   // 未来の日は renderToday が今日に戻す
+};
 $("#nextDay").onclick = () => { if (day < ymd(new Date())) { day = addDays(day, 1); renderToday(); } };
 $("#fab").onclick = () => openPicker();
 $("#meals").onclick = e => {

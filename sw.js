@@ -1,6 +1,6 @@
 // オフラインでも開けるようにするための Service Worker（LIFT LOG と同じ方式）。
 // ネットワーク優先（online なら常に最新を取りに行く）＋ 失敗したらキャッシュを返す。
-const CACHE = "meal-log-cache-v2";
+const CACHE = "meal-log-cache-v3";
 const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json",
                 "./fonts/nunito-latin.woff2", "./fonts/mplus.css",
                 "./icons/icon-192.png", "./icons/icon-512.png"];
