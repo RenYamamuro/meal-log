@@ -31,14 +31,32 @@ LIFT LOG と同じく素の HTML + CSS + JavaScript の1ファイル構成で、
 `est: true`（画面では「目安」）の惣菜・外食・市販品はよくある値で、店や商品でかなり変わる。
 記録には追加した時点の値を写して保存するので、`FOODS` を直しても過去の記録は変わらない。
 
-## 動かし方
+## 公開URL
+
+https://renyamamuro.github.io/meal-log/
+
+GitHub Pages（`main` ブランチのルート）。更新は `git push` するだけで反映される（反映まで数十秒）。
+`sw.js` の中身を変えたときは `CACHE` の版を上げること。
+
+**更新を端末に届ける方法**: iPhone ならアプリスイッチャーで上スワイプして完全に終了させ、
+オンライン状態で開き直す。
+
+### ホーム画面に追加
+
+- **iPhone (Safari)** — 共有ボタン → 「ホーム画面に追加」
+- **Android (Chrome)** — メニュー → 「ホーム画面に追加」
+
+記録は端末のブラウザの中だけに保存され、端末どうしで同期はしない。
+別の端末に移すときは「目標」タブの書き出し・読み込みを使う。
+
+## 手元で動かす
 
 ```
-python3 -m http.server 8765 --directory meal-log
+python3 -m http.server 8765
 ```
 
-で http://localhost:8765 を開く。iPhone ではホーム画面に追加すると単体のアプリのように使える
-（GitHub Pages などに置いた場合）。`index.html` を直接開いても動くが、Service Worker（オフライン）は効かない。
+をこのフォルダで実行して http://localhost:8765 を開く。`index.html` を直接開いても動くが、
+Service Worker（オフライン）は効かない。
 
 ## ファイル
 
