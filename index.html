@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MEAL LOG</title>
+<meta name="description" content="食事の記録と、カロリー・PFCバランスの管理">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MEAL LOG">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="fonts/mplus.css">
+<style>
+/* 文字の指定は LIFT LOG・サブスク管理と同じ（Apple 端末はヒラギノ丸ゴ＋SF Rounded、それ以外は同梱の Nunito ＋ M PLUS Rounded 1c） */
+@font-face {
+  font-family: "JP Rounded";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Hiragino Maru Gothic ProN W4"), local("HiraMaruProN-W4"),
+       local("Hiragino Maru Gothic Pro W4"), local("HiraMaruPro-W4");
+  unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+203B;
+}
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("fonts/nunito-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ==========================================================================
+   設計の約束（LIFT LOG・サブスク管理と共通。iOS 純正風・柔らかめ）
+   - 灰色の地に白い板。アクセントはこのアプリ固有の緑
+   - P/F/C はそれぞれ固定の色（--p / --f / --c）で、どの画面でも同じ色にする
+   - 余白は 4 の倍数、文字は 6 段階＋大見出し
+   ========================================================================== */
+:root {
+  color-scheme: light dark;
+  --bg: #f2f2f7;
+  --panel: #ffffff;
+  --fill: rgba(120, 120, 128, .12);
+  --line: rgba(60, 60, 67, .14);
+  --press: rgba(120, 120, 128, .16);
+  --ink: #000000;
+  --ink-2: #3c3c43;
+  --ink-3: #6c6c70;
+  --accent: #1f7a4a;            /* 白地 5.4:1 */
+  --accent-ink: #ffffff;
+  --crit: #d70015;
+  --crit-wash: rgba(255, 59, 48, .10);
+  --p: #d9534f;                 /* たんぱく質 */
+  --f: #e0a100;                 /* 脂質 */
+  --c: #3a7bd5;                 /* 炭水化物 */
+  --track: rgba(120, 120, 128, .16);
+  --glass: rgba(249, 249, 252, .72);
+  --glass-blur: saturate(180%) blur(24px);
+
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 20px; --t-xl: 32px; --t-title: 34px;
+  --r-sm: 10px; --r-md: 14px; --r-lg: 22px; --r-sheet: 28px; --r-pill: 999px;
+  --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, .28), 0 0 0 .5px var(--line);
+  --spring: cubic-bezier(.32, .72, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --panel: #1c1c1e;
+    --fill: rgba(118, 118, 128, .24);
+    --line: rgba(84, 84, 88, .55);
+    --press: rgba(255, 255, 255, .12);
+    --ink: #ffffff;
+    --ink-2: #ebebf5;
+    --ink-3: #a1a1aa;
+    --accent: #3ccf7f;
+    --accent-ink: #00210f;
+    --crit: #ff6961;
+    --crit-wash: rgba(255, 69, 58, .16);
+    --p: #ff6b66;
+    --f: #ffc83d;
+    --c: #64a2ff;
+    --track: rgba(118, 118, 128, .32);
+    --glass: rgba(22, 22, 24, .72);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "JP Rounded", ui-rounded, "Nunito", "M PLUS Rounded 1c", system-ui, sans-serif;
+  font-size: var(--t-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + var(--s4)) var(--s4) calc(env(safe-area-inset-bottom) + 96px);
+}
+.view[hidden] { display: none; }
+
+/* ---------- 見出しと日付 ---------- */
+.titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3); margin: var(--s2) 0 var(--s4); }
+h1 { font-size: var(--t-title); font-weight: 800; letter-spacing: .01em; margin: 0; line-height: 1.1; }
+.datenav { display: flex; align-items: center; gap: var(--s1); }
+.datenav > button {
+  width: 36px; height: 36px; border: 0; border-radius: var(--r-pill);
+  background: var(--fill); display: grid; place-items: center;
+}
+.datenav > button:disabled { opacity: .35; cursor: default; }
+.datenav .label { min-width: 104px; text-align: center; font-weight: 700; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.3; }
+.datenav .label button { border: 0; background: none; padding: 0; font-weight: 700; font-size: var(--t-xs); color: var(--accent); }
+
+.card {
+  background: var(--panel);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  margin-bottom: var(--s4);
+}
+.card h2 { font-size: var(--t-md); margin: 0 0 var(--s3); font-weight: 800; }
+.section-label { font-size: var(--t-sm); color: var(--ink-3); margin: var(--s5) var(--s4) var(--s2); }
+
+/* ---------- 今日の合計 ---------- */
+.summary { display: grid; grid-template-columns: 132px 1fr; gap: var(--s4); align-items: center; }
+.ring { position: relative; width: 132px; height: 132px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .big { font-size: 28px; font-weight: 800; line-height: 1; }
+.ring .small { font-size: var(--t-xs); color: var(--ink-3); margin-top: 2px; }
+.ring.over .big { color: var(--crit); }
+.macros { display: grid; gap: var(--s3); min-width: 0; }
+.macro .row { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--t-sm); gap: var(--s2); }
+.macro .name { font-weight: 800; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.macro .val { color: var(--ink-3); white-space: nowrap; }
+.macro .val b { color: var(--ink); font-weight: 800; }
+.bar { height: 8px; border-radius: var(--r-pill); background: var(--track); overflow: hidden; margin-top: 4px; }
+.bar > i { display: block; height: 100%; border-radius: inherit; transition: width .4s var(--spring); }
+.macro.over .val b { color: var(--crit); }
+
+.remain { display: flex; justify-content: space-around; text-align: center; margin-top: var(--s4); padding-top: var(--s3); border-top: .5px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
+.remain b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 800; }
+
+.ratio { margin-top: var(--s4); }
+.ratio .lbl { display: flex; justify-content: space-between; font-size: var(--t-xs); color: var(--ink-3); margin-bottom: 4px; }
+.stack { display: flex; height: 14px; border-radius: var(--r-pill); overflow: hidden; background: var(--track); }
+.stack > i { display: block; height: 100%; }
+.stack + .stack { margin-top: 4px; height: 6px; opacity: .55; }
+.ratio .legend { display: flex; gap: var(--s3); font-size: var(--t-xs); color: var(--ink-3); margin-top: 6px; flex-wrap: wrap; }
+
+/* ---------- 食事ごとのリスト ---------- */
+.meal { background: var(--panel); border-radius: var(--r-lg); margin-bottom: var(--s3); overflow: hidden; }
+.meal-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s3) var(--s4); }
+.meal-head .t { font-weight: 800; }
+.meal-head .k { font-size: var(--t-sm); color: var(--ink-3); }
+.item {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s3); width: 100%;
+  text-align: left; border: 0; background: none; padding: var(--s3) var(--s4);
+  border-top: .5px solid var(--line); align-items: center;
+}
+button.item:active { background: var(--press); }
+.item .n { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .kc { font-weight: 800; text-align: right; }
+.item .sub { font-size: var(--t-xs); color: var(--ink-3); grid-column: 1 / -1; display: flex; gap: var(--s3); flex-wrap: wrap; }
+.pfc-mini span::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+.pfc-mini .P::before { background: var(--p); }
+.pfc-mini .F::before { background: var(--f); }
+.pfc-mini .C::before { background: var(--c); }
+.pfc-mini { display: inline-flex; gap: var(--s2); }
+.add-row {
+  width: 100%; border: 0; border-top: .5px solid var(--line); background: none;
+  padding: var(--s3) var(--s4); text-align: left; color: var(--accent); font-weight: 700;
+}
+.add-row:active { background: var(--press); }
+
+/* ---------- ボタン・入力 ---------- */
+.btn {
+  border: 0; border-radius: var(--r-md); padding: 13px var(--s4);
+  background: var(--fill); font-weight: 700; min-height: 48px;
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.danger { background: var(--crit-wash); color: var(--crit); }
+.btn.block { width: 100%; }
+.btn:active { filter: brightness(.92); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s4); }
+
+.field { display: grid; gap: 6px; margin-bottom: var(--s3); min-width: 0; }
+.field label, .field .lbl { font-size: var(--t-sm); color: var(--ink-3); }
+input[type=text], input[type=number], input[type=search], select {
+  width: 100%; border: 0; border-radius: var(--r-sm); background: var(--fill);
+  padding: 12px var(--s3); font-size: 16px; min-height: 44px; outline: none;
+}
+input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); }
+.seg { display: flex; background: var(--fill); border-radius: var(--r-sm); padding: 2px; }
+.seg button { flex: 1; border: 0; background: none; border-radius: 8px; padding: 8px 4px; font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.seg button[aria-pressed=true] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.hint { font-size: var(--t-xs); color: var(--ink-3); margin: 0; }
+
+/* ---------- タブバー ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: flex; justify-content: center;
+  padding: 6px var(--s4) calc(env(safe-area-inset-bottom) + 6px);
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border-top: .5px solid var(--line);
+}
+.tabbar .inner { display: flex; width: 100%; max-width: 560px; }
+.tabbar button {
+  flex: 1; border: 0; background: none; display: grid; justify-items: center; gap: 2px;
+  font-size: 10px; font-weight: 700; color: var(--ink-3); padding: 4px 0;
+}
+.tabbar button[aria-current=page] { color: var(--accent); }
+.tabbar svg { width: 26px; height: 26px; }
+.fab {
+  position: fixed; right: max(var(--s4), calc(50% - 280px + var(--s4))); z-index: 11;
+  bottom: calc(env(safe-area-inset-bottom) + 76px);
+  width: 56px; height: 56px; border-radius: 50%; border: 0;
+  background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 10px 24px -6px rgba(0,0,0,.35); display: grid; place-items: center;
+}
+.fab[hidden] { display: none; }
+
+/* ---------- シート ---------- */
+.scrim { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.32); opacity: 0; transition: opacity .25s; }
+.scrim.open { opacity: 1; }
+.scrim[hidden], .sheet[hidden] { display: none; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; margin: 0 auto; max-width: 560px;
+  max-height: 92dvh; display: flex; flex-direction: column;
+  background: var(--bg); border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  box-shadow: var(--shadow-pop); transform: translateY(100%); transition: transform .38s var(--spring);
+}
+.sheet.open { transform: none; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s4) var(--s4) var(--s2); }
+.sheet-head h3 { margin: 0; font-size: var(--t-lg); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-head .x { flex: none; border: 0; background: var(--fill); width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); }
+.sheet-body { overflow-y: auto; padding: var(--s2) var(--s4) calc(env(safe-area-inset-bottom) + var(--s5)); overscroll-behavior: contain; }
+
+.chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s3) 0; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 0; border-radius: var(--r-pill); padding: 7px 14px; background: var(--fill); font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); }
+.chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.foodlist { background: var(--panel); border-radius: var(--r-md); overflow: hidden; }
+.foodlist > .item:first-child { border-top: 0; }
+.empty { text-align: center; color: var(--ink-3); padding: var(--s5) var(--s4); font-size: var(--t-sm); }
+.tag { font-size: 10px; font-weight: 700; color: var(--ink-3); background: var(--fill); border-radius: 4px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; }
+
+.qty { display: flex; align-items: center; justify-content: center; gap: var(--s4); margin: var(--s4) 0; }
+.qty button { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--fill); font-size: 24px; font-weight: 700; }
+.qty input[type=number] { width: 96px; text-align: center; font-size: 28px; font-weight: 800; background: none; padding: 0; }
+.qty .unit { font-size: var(--t-xs); color: var(--ink-3); text-align: center; }
+.preview { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; background: var(--panel); border-radius: var(--r-md); padding: var(--s3) 0; }
+.preview div { font-size: var(--t-xs); color: var(--ink-3); }
+.preview b { display: block; font-size: var(--t-lg); color: var(--ink); font-weight: 800; }
+
+/* ---------- 履歴 ---------- */
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font-size: 10px; fill: var(--ink-3); font-family: inherit; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); text-align: center; }
+.stats div { font-size: var(--t-xs); color: var(--ink-3); }
+.stats b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 800; }
+
+/* ---------- トースト ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 144px); z-index: 30;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: rgba(30,30,32,.92); color: #fff; padding: 10px 18px; border-radius: var(--r-pill);
+  font-size: var(--t-sm); font-weight: 700; transition: all .25s var(--spring); white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <!-- ===== 今日 ===== -->
+  <section class="view" id="view-today">
+    <div class="titlebar">
+      <h1 id="todayTitle">今日</h1>
+      <div class="datenav">
+        <button id="prevDay" aria-label="前の日"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="label num" id="dateLabel"></div>
+        <button id="nextDay" aria-label="次の日"><svg width="16" height="16" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="summary">
+        <div class="ring" id="ring"></div>
+        <div class="macros" id="macros"></div>
+      </div>
+      <div class="remain" id="remain"></div>
+      <div class="ratio" id="ratio"></div>
+    </div>
+
+    <div id="meals"></div>
+  </section>
+
+  <!-- ===== 履歴 ===== -->
+  <section class="view" id="view-history" hidden>
+    <div class="titlebar"><h1>履歴</h1>
+      <div class="seg" id="rangeSeg" style="width:140px">
+        <button data-range="7" aria-pressed="true">7日</button>
+        <button data-range="30" aria-pressed="false">30日</button>
+      </div>
+    </div>
+    <div class="card chart">
+      <h2>カロリー</h2>
+      <div id="kcalChart"></div>
+    </div>
+    <div class="card chart">
+      <h2>たんぱく質</h2>
+      <div id="pChart"></div>
+    </div>
+    <div class="card">
+      <h2>記録した日の平均</h2>
+      <div class="stats" id="avgStats"></div>
+      <div class="ratio" id="avgRatio"></div>
+    </div>
+    <div class="section-label">日ごとの記録</div>
+    <div class="foodlist" id="dayList"></div>
+  </section>
+
+  <!-- ===== 目標・設定 ===== -->
+  <section class="view" id="view-settings" hidden>
+    <div class="titlebar"><h1>目標</h1></div>
+    <div class="card">
+      <h2>からだ</h2>
+      <div class="field"><span class="lbl">性別</span>
+        <div class="seg" id="sexSeg"><button data-v="m">男性</button><button data-v="f">女性</button></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="age">年齢</label><input id="age" type="number" inputmode="numeric" min="10" max="100"></div>
+        <div class="field"><label for="height">身長 (cm)</label><input id="height" type="number" inputmode="decimal" min="100" max="230"></div>
+        <div class="field"><label for="weight">体重 (kg)</label><input id="weight" type="number" inputmode="decimal" step="0.1" min="25" max="250"></div>
+        <div class="field"><label for="activity">活動量</label>
+          <select id="activity">
+            <option value="1.2">ほぼ座りっぱなし</option>
+            <option value="1.375">軽い運動 週1〜3回</option>
+            <option value="1.55">運動 週3〜5回</option>
+            <option value="1.725">ハードな運動 週6〜7回</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><span class="lbl">目的</span>
+        <div class="seg" id="goalSeg"><button data-v="cut">減量</button><button data-v="keep">維持</button><button data-v="bulk">増量</button></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="pPerKg">P（体重1kgあたり g）</label><input id="pPerKg" type="number" inputmode="decimal" step="0.1" min="0.8" max="3.5"></div>
+        <div class="field"><label for="fatPct">F（カロリーの %）</label><input id="fatPct" type="number" inputmode="numeric" min="10" max="50"></div>
+      </div>
+      <p class="hint" id="calcHint"></p>
+    </div>
+
+    <div class="card">
+      <h2>1日の目標</h2>
+      <div class="field"><span class="lbl">決め方</span>
+        <div class="seg" id="modeSeg"><button data-v="auto">からだから計算</button><button data-v="manual">自分で入力</button></div>
+      </div>
+      <div class="grid4">
+        <div class="field"><label for="tK">kcal</label><input id="tK" type="number" inputmode="numeric"></div>
+        <div class="field"><label for="tP">P (g)</label><input id="tP" type="number" inputmode="numeric"></div>
+        <div class="field"><label for="tF">F (g)</label><input id="tF" type="number" inputmode="numeric"></div>
+        <div class="field"><label for="tC">C (g)</label><input id="tC" type="number" inputmode="numeric"></div>
+      </div>
+      <p class="hint">「からだから計算」のときは上の値から自動で決まる。ここを直接書き換えると「自分で入力」に切り替わる。</p>
+    </div>
+
+    <div class="section-label">マイ食品</div>
+    <div class="foodlist" id="myFoodList"></div>
+
+    <div class="section-label">データ</div>
+    <div class="card">
+      <div class="btns" style="margin-top:0">
+        <button class="btn" id="exportBtn">書き出し (JSON)</button>
+        <button class="btn" id="importBtn">読み込み</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <p class="hint" style="margin-top:var(--s3)">データはこの端末のブラウザの中だけに保存される。機種変更の前に書き出しておくこと。</p>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="fab" aria-label="食事を追加">
+  <svg width="26" height="26" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+</button>
+
+<nav class="tabbar">
+  <div class="inner">
+    <button data-tab="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5H12z" fill="currentColor"/></svg>今日
+    </button>
+    <button data-tab="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>履歴
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>目標
+    </button>
+  </div>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-head">
+    <h3 id="sheetTitle"></h3>
+    <button class="x" id="sheetClose" aria-label="閉じる"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2 2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   食品のデータ
+   値は1単位（unit）あたり。素材は日本食品標準成分表（八訂）の100gあたりの値から計算。
+   est: true の惣菜・外食・市販品は一般的な目安で、店や商品でかなり変わる。
+   ========================================================================== */
+const CATS = [
+  { id: "staple", name: "主食" },
+  { id: "meat",   name: "肉・魚" },
+  { id: "soy",    name: "卵・大豆・乳" },
+  { id: "veg",    name: "野菜・果物" },
+  { id: "dish",   name: "惣菜・外食" },
+  { id: "drink",  name: "飲み物・間食" },
+];
+const FOODS = [
+  // 主食
+  { id: "rice",      cat: "staple", name: "ご飯",               unit: "茶碗1杯 150g",   k: 234, p: 3.8,  f: 0.5,  c: 55.7 },
+  { id: "rice-l",    cat: "staple", name: "ご飯（大盛り）",     unit: "250g",           k: 390, p: 6.3,  f: 0.8,  c: 92.8 },
+  { id: "brownrice", cat: "staple", name: "玄米ご飯",           unit: "茶碗1杯 150g",   k: 228, p: 4.2,  f: 1.5,  c: 53.4 },
+  { id: "bread",     cat: "staple", name: "食パン",             unit: "6枚切り1枚 60g", k: 149, p: 5.3,  f: 2.5,  c: 27.8 },
+  { id: "roll",      cat: "staple", name: "ロールパン",         unit: "1個 30g",        k: 93,  p: 3.0,  f: 2.7,  c: 14.6 },
+  { id: "udon",      cat: "staple", name: "うどん（ゆで）",     unit: "1玉 230g",       k: 219, p: 6.0,  f: 0.9,  c: 49.7 },
+  { id: "soba",      cat: "staple", name: "そば（ゆで）",       unit: "1玉 200g",       k: 260, p: 9.6,  f: 2.0,  c: 52.0 },
+  { id: "pasta",     cat: "staple", name: "スパゲッティ（乾）", unit: "1人前 100g",     k: 347, p: 12.9, f: 1.8,  c: 73.1 },
+  { id: "oats",      cat: "staple", name: "オートミール",       unit: "30g",            k: 105, p: 4.1,  f: 1.7,  c: 20.7 },
+  // 肉・魚
+  { id: "breast",    cat: "meat", name: "鶏むね肉（皮なし）",   unit: "100g",           k: 105, p: 23.3, f: 1.9,  c: 0.1 },
+  { id: "thigh",     cat: "meat", name: "鶏もも肉（皮つき）",   unit: "100g",           k: 190, p: 16.6, f: 14.2, c: 0 },
+  { id: "sasami",    cat: "meat", name: "ささみ",               unit: "1本 50g",        k: 49,  p: 12.0, f: 0.4,  c: 0.1 },
+  { id: "loin",      cat: "meat", name: "豚ロース",             unit: "100g",           k: 248, p: 19.3, f: 19.2, c: 0.2 },
+  { id: "belly",     cat: "meat", name: "豚バラ",               unit: "100g",           k: 366, p: 14.4, f: 35.4, c: 0.1 },
+  { id: "beef",      cat: "meat", name: "牛もも",               unit: "100g",           k: 196, p: 19.5, f: 13.3, c: 0.4 },
+  { id: "mince",     cat: "meat", name: "合いびき肉",           unit: "100g",           k: 251, p: 17.1, f: 21.1, c: 0.3 },
+  { id: "salmon",    cat: "meat", name: "鮭",                   unit: "1切れ 80g",      k: 99,  p: 17.8, f: 3.3,  c: 0.1 },
+  { id: "mackerel",  cat: "meat", name: "さば",                 unit: "1切れ 80g",      k: 169, p: 16.5, f: 13.4, c: 0.2 },
+  { id: "tuna",      cat: "meat", name: "まぐろ赤身（刺身）",   unit: "80g",            k: 92,  p: 21.1, f: 1.1,  c: 0.1 },
+  { id: "tunacan",   cat: "meat", name: "ツナ缶（水煮）",       unit: "1缶 70g",        k: 49,  p: 11.2, f: 0.5,  c: 0.1 },
+  { id: "tunacan-o", cat: "meat", name: "ツナ缶（油漬）",       unit: "1缶 70g",        k: 186, p: 12.4, f: 15.2, c: 0.1 },
+  // 卵・大豆・乳
+  { id: "egg",       cat: "soy", name: "卵",                    unit: "1個 50g",        k: 71,  p: 6.1,  f: 5.1,  c: 0.2 },
+  { id: "natto",     cat: "soy", name: "納豆",                  unit: "1パック 45g",    k: 86,  p: 7.4,  f: 4.5,  c: 5.4 },
+  { id: "tofu-k",    cat: "soy", name: "絹ごし豆腐",            unit: "1/2丁 150g",     k: 84,  p: 8.0,  f: 5.3,  c: 3.0 },
+  { id: "tofu-m",    cat: "soy", name: "木綿豆腐",              unit: "1/2丁 150g",     k: 110, p: 10.5, f: 7.4,  c: 2.3 },
+  { id: "milk",      cat: "soy", name: "牛乳",                  unit: "コップ1杯 200ml", k: 126, p: 6.8, f: 7.8,  c: 9.9 },
+  { id: "milk-low",  cat: "soy", name: "低脂肪乳",              unit: "コップ1杯 200ml", k: 87,  p: 7.8, f: 2.1,  c: 11.3 },
+  { id: "yogurt",    cat: "soy", name: "ヨーグルト（無糖）",    unit: "100g",           k: 56,  p: 3.6,  f: 3.0,  c: 4.9 },
+  { id: "cheese",    cat: "soy", name: "スライスチーズ",        unit: "1枚 18g",        k: 56,  p: 4.1,  f: 4.7,  c: 0.2 },
+  { id: "protein",   cat: "soy", name: "プロテイン（ホエイ）",  unit: "1杯 30g",        k: 115, p: 22.0, f: 1.5,  c: 3.0, est: true },
+  // 野菜・果物
+  { id: "broccoli",  cat: "veg", name: "ブロッコリー",          unit: "50g",            k: 19,  p: 2.7,  f: 0.3,  c: 3.3 },
+  { id: "cabbage",   cat: "veg", name: "キャベツ",              unit: "50g",            k: 11,  p: 0.7,  f: 0.1,  c: 2.6 },
+  { id: "tomato",    cat: "veg", name: "トマト",                unit: "1個 150g",       k: 30,  p: 1.1,  f: 0.2,  c: 7.1 },
+  { id: "salad",     cat: "veg", name: "サラダ（ドレッシングなし）", unit: "1皿 100g",  k: 20,  p: 1.0,  f: 0.1,  c: 4.0, est: true },
+  { id: "avocado",   cat: "veg", name: "アボカド",              unit: "1/2個 70g",      k: 125, p: 1.5,  f: 12.3, c: 5.5 },
+  { id: "banana",    cat: "veg", name: "バナナ",                unit: "1本 100g",       k: 93,  p: 1.1,  f: 0.2,  c: 22.5 },
+  { id: "apple",     cat: "veg", name: "りんご",                unit: "1/2個 150g",     k: 80,  p: 0.2,  f: 0.3,  c: 23.3 },
+  { id: "mikan",     cat: "veg", name: "みかん",                unit: "1個 80g",        k: 39,  p: 0.6,  f: 0.1,  c: 9.6 },
+  // 惣菜・外食（目安）
+  { id: "onigiri",   cat: "dish", name: "おにぎり（鮭）",       unit: "1個",            k: 180, p: 4.5,  f: 1.2,  c: 38.0, est: true },
+  { id: "chicken-s", cat: "dish", name: "サラダチキン",         unit: "1袋 110g",       k: 120, p: 26.0, f: 1.5,  c: 0.5,  est: true },
+  { id: "karaage",   cat: "dish", name: "唐揚げ",               unit: "3個 90g",        k: 276, p: 21.8, f: 16.3, c: 12.0 },
+  { id: "hamburg",   cat: "dish", name: "ハンバーグ",           unit: "1個 150g",       k: 330, p: 20.0, f: 21.0, c: 14.0, est: true },
+  { id: "gyoza",     cat: "dish", name: "餃子",                 unit: "6個",            k: 340, p: 14.0, f: 18.0, c: 30.0, est: true },
+  { id: "miso",      cat: "dish", name: "味噌汁",               unit: "1杯",            k: 40,  p: 3.0,  f: 1.5,  c: 4.0,  est: true },
+  { id: "gyudon",    cat: "dish", name: "牛丼（並）",           unit: "1杯",            k: 650, p: 20.0, f: 25.0, c: 88.0, est: true },
+  { id: "curry",     cat: "dish", name: "カレーライス",         unit: "1皿",            k: 750, p: 20.0, f: 25.0, c: 110.0, est: true },
+  { id: "ramen",     cat: "dish", name: "ラーメン（醤油）",     unit: "1杯",            k: 500, p: 20.0, f: 15.0, c: 70.0, est: true },
+  // 飲み物・間食
+  { id: "coffee",    cat: "drink", name: "コーヒー（ブラック）", unit: "1杯 200ml",     k: 8,   p: 0.4,  f: 0,    c: 1.4 },
+  { id: "oj",        cat: "drink", name: "オレンジジュース",    unit: "コップ1杯 200ml", k: 92, p: 1.4,  f: 0.2,  c: 22.0 },
+  { id: "cola",      cat: "drink", name: "コーラ",              unit: "1缶 350ml",      k: 161, p: 0.4,  f: 0,    c: 40.0 },
+  { id: "beer",      cat: "drink", name: "ビール",              unit: "1缶 350ml",      k: 140, p: 1.1,  f: 0,    c: 10.9 },
+  { id: "almond",    cat: "drink", name: "アーモンド",          unit: "10粒 10g",       k: 61,  p: 2.0,  f: 5.2,  c: 2.1 },
+  { id: "bar",       cat: "drink", name: "プロテインバー",      unit: "1本",            k: 200, p: 15.0, f: 9.0,  c: 16.0, est: true },
+];
+
+const MEALS = [
+  { id: "breakfast", name: "朝食" },
+  { id: "lunch",     name: "昼食" },
+  { id: "dinner",    name: "夕食" },
+  { id: "snack",     name: "間食" },
+];
+
+/* ==========================================================================
+   保存
+   ========================================================================== */
+const KEY = "meal-log-v1";
+const DEFAULT_PROFILE = { sex: "m", age: 23, height: 170, weight: 58, activity: 1.55, goal: "keep", pPerKg: 2.0, fatPct: 25 };
+
+function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  d = d && typeof d === "object" ? d : {};
+  return {
+    days: d.days || {},                                // { "YYYY-MM-DD": [entry, ...] }
+    profile: { ...DEFAULT_PROFILE, ...(d.profile || {}) },
+    mode: d.mode === "manual" ? "manual" : "auto",
+    manual: d.manual || null,                          // { k, p, f, c }
+    myFoods: d.myFoods || [],
+    recent: d.recent || [],                            // 最近使った食品の id（新しい順）
+  };
+}
+let state = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { alert("保存できませんでした（ブラウザの容量がいっぱいかもしれません）"); }
+}
+
+/* ==========================================================================
+   計算
+   ========================================================================== */
+// 基礎代謝は Mifflin-St Jeor 式。目的に応じて消費カロリーを ±して、
+// P は体重×g、F はカロリーの%、残りを C にする
+function calcTargets(pr) {
+  const bmr = 10 * pr.weight + 6.25 * pr.height - 5 * pr.age + (pr.sex === "m" ? 5 : -161);
+  const tdee = bmr * pr.activity;
+  const adj = { cut: -400, keep: 0, bulk: 300 }[pr.goal] || 0;
+  const k = Math.round(tdee + adj);
+  const p = Math.round(pr.weight * pr.pPerKg);
+  const f = Math.round(k * pr.fatPct / 100 / 9);
+  const c = Math.max(0, Math.round((k - p * 4 - f * 9) / 4));
+  return { bmr: Math.round(bmr), tdee: Math.round(tdee), k, p, f, c };
+}
+function targets() {
+  return state.mode === "manual" && state.manual ? state.manual : calcTargets(state.profile);
+}
+function totals(entries) {
+  const t = { k: 0, p: 0, f: 0, c: 0 };
+  for (const e of entries) { t.k += e.k * e.qty; t.p += e.p * e.qty; t.f += e.f * e.qty; t.c += e.c * e.qty; }
+  return t;
+}
+// PFC バランスは「各栄養素のカロリー ÷ 3つの合計」。アルコールの分は入れない
+function ratio(t) {
+  const P = t.p * 4, F = t.f * 9, C = t.c * 4, sum = P + F + C;
+  return sum ? { p: P / sum * 100, f: F / sum * 100, c: C / sum * 100 } : { p: 0, f: 0, c: 0 };
+}
+
+/* ==========================================================================
+   小さな道具
+   ========================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+const r0 = n => Math.round(n);
+const r1 = n => Math.round(n * 10) / 10;
+const fmtQty = q => String(r1(q));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function parseYmd(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+const WD = ["日", "月", "火", "水", "木", "金", "土"];
+function mdw(s) { const d = parseYmd(s); return `${d.getMonth() + 1}月${d.getDate()}日(${WD[d.getDay()]})`; }
+
+let toastTimer;
+function toast(msg) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+}
+
+/* ==========================================================================
+   今日の画面
+   ========================================================================== */
+let day = ymd(new Date());
+
+function entriesOf(d) { return state.days[d] || []; }
+
+function renderToday() {
+  const today = ymd(new Date());
+  if (day > today) day = today;
+  $("#todayTitle").textContent = day === today ? "今日" : day === addDays(today, -1) ? "昨日" : "記録";
+  $("#dateLabel").innerHTML = day === today ? mdw(day) : `${mdw(day)}<br><button id="goToday">今日へ戻る</button>`;
+  $("#nextDay").disabled = day >= today;
+  const goBtn = $("#goToday");
+  if (goBtn) goBtn.onclick = () => { day = today; renderToday(); };
+
+  const list = entriesOf(day);
+  const t = totals(list), g = targets();
+
+  // カロリーの輪
+  const R = 56, L = 2 * Math.PI * R, pct = g.k ? t.k / g.k : 0, over = t.k > g.k;
+  $("#ring").className = "ring" + (over ? " over" : "");
+  $("#ring").innerHTML = `
+    <svg viewBox="0 0 132 132" aria-hidden="true">
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--track)" stroke-width="12"/>
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="${over ? "var(--crit)" : "var(--accent)"}" stroke-width="12"
+        stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L * (1 - Math.min(1, pct))}"
+        style="transition: stroke-dashoffset .5s var(--spring)"/>
+    </svg>
+    <div class="center"><div class="big num">${r0(t.k)}</div><div class="small num">/ ${g.k} kcal</div></div>`;
+
+  // P / F / C のバー
+  $("#macros").innerHTML = [["p", "たんぱく質"], ["f", "脂質"], ["c", "炭水化物"]].map(([key, name]) => {
+    const v = t[key], goal = g[key], w = goal ? Math.min(100, v / goal * 100) : 0;
+    return `<div class="macro${goal && v > goal * 1.1 ? " over" : ""}">
+      <div class="row"><span class="name"><i class="dot" style="background:var(--${key})"></i>${name}</span>
+      <span class="val num"><b>${r0(v)}</b> / ${goal}g</span></div>
+      <div class="bar"><i style="width:${w}%;background:var(--${key})"></i></div></div>`;
+  }).join("");
+
+  // 残り。超えた分は＋で出す
+  const left = (a, b) => (b - a >= 0 ? r0(b - a) : `+${r0(a - b)}`);
+  $("#remain").innerHTML = `
+    <div>残り kcal<b class="num">${left(t.k, g.k)}</b></div>
+    <div>残り P<b class="num">${left(t.p, g.p)}g</b></div>
+    <div>残り F<b class="num">${left(t.f, g.f)}g</b></div>
+    <div>残り C<b class="num">${left(t.c, g.c)}g</b></div>`;
+
+  $("#ratio").innerHTML = ratioHtml(t, g, "PFCバランス");
+
+  // 食事ごと
+  $("#meals").innerHTML = MEALS.map(m => {
+    const items = list.filter(e => e.meal === m.id);
+    const mt = totals(items);
+    return `<div class="meal">
+      <div class="meal-head"><span class="t">${m.name}</span><span class="k num">${items.length ? r0(mt.k) + " kcal" : ""}</span></div>
+      ${items.map(itemHtml).join("")}
+      <button class="add-row" data-add="${m.id}">＋ ${m.name}を追加</button>
+    </div>`;
+  }).join("");
+}
+
+function ratioHtml(t, g, label) {
+  const a = ratio(t), b = ratio(g);
+  const bar = r => `<i style="width:${r.p}%;background:var(--p)"></i><i style="width:${r.f}%;background:var(--f)"></i><i style="width:${r.c}%;background:var(--c)"></i>`;
+  const has = t.p + t.f + t.c > 0;
+  return `<div class="lbl"><span>${label}</span><span class="num">${has ? `P ${r0(a.p)} : F ${r0(a.f)} : C ${r0(a.c)}` : "まだ記録なし"}</span></div>
+    <div class="stack" aria-label="実際">${has ? bar(a) : ""}</div>
+    <div class="stack" aria-label="目標">${bar(b)}</div>
+    <div class="legend"><span>上：実際</span><span class="num">下：目標 P ${r0(b.p)} : F ${r0(b.f)} : C ${r0(b.c)}</span></div>`;
+}
+
+function pfcMini(p, f, c) {
+  return `<span class="pfc-mini"><span class="P">P ${r1(p)}</span><span class="F">F ${r1(f)}</span><span class="C">C ${r1(c)}</span></span>`;
+}
+
+function itemHtml(e) {
+  return `<button class="item" data-edit="${e.id}">
+    <span class="n">${esc(e.name)}</span><span class="kc num">${r0(e.k * e.qty)} kcal</span>
+    <span class="sub num"><span>${esc(e.unit)} × ${fmtQty(e.qty)}</span>${pfcMini(e.p * e.qty, e.f * e.qty, e.c * e.qty)}</span>
+  </button>`;
+}
+
+/* ==========================================================================
+   シート（食品を選ぶ・量を決める・手入力・編集）
+   ========================================================================== */
+const sheet = $("#sheet"), scrim = $("#scrim");
+let sheetTimer;
+function openSheet(title, html) {
+  clearTimeout(sheetTimer);
+  $("#sheetTitle").textContent = title;
+  $("#sheetBody").innerHTML = html;
+  $("#sheetBody").scrollTop = 0;
+  sheet.hidden = scrim.hidden = false;
+  requestAnimationFrame(() => { sheet.classList.add("open"); scrim.classList.add("open"); });
+}
+function closeSheet() {
+  sheet.classList.remove("open"); scrim.classList.remove("open");
+  sheetTimer = setTimeout(() => { sheet.hidden = scrim.hidden = true; }, 300);
+}
+$("#sheetClose").onclick = closeSheet;
+scrim.onclick = closeSheet;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+
+// ＋ボタンから開いたときは、時間帯で食事を決めておく
+function guessMeal() {
+  const h = new Date().getHours();
+  return h < 10 ? "breakfast" : h < 15 ? "lunch" : h < 17 ? "snack" : "dinner";
+}
+function allFoods() { return [...state.myFoods.map(f => ({ ...f, cat: "my" })), ...FOODS]; }
+function findFood(id) { return allFoods().find(f => f.id === id); }
+
+// 1) 食品を選ぶ
+let pick = { meal: "breakfast", cat: "recent", q: "" };
+function openPicker(meal) {
+  pick = { meal: meal || guessMeal(), cat: state.recent.length ? "recent" : "staple", q: "" };
+  const chips = [{ id: "recent", name: "最近" }, { id: "my", name: "マイ食品" }, ...CATS];
+  openSheet(`${MEALS.find(m => m.id === pick.meal).name}に追加`, `
+    <input type="search" id="foodSearch" placeholder="食品を検索（例：鶏むね、納豆）" autocomplete="off">
+    <div class="chips" id="catChips">${chips.map(c => `<button class="chip" data-cat="${c.id}">${c.name}</button>`).join("")}</div>
+    <div class="foodlist" id="foodResults"></div>
+    <button class="btn block" style="margin-top:var(--s4)" id="manualBtn">手入力で追加する</button>`);
+  $("#foodSearch").oninput = e => { pick.q = e.target.value.trim(); renderPicker(); };
+  $("#catChips").onclick = e => {
+    const b = e.target.closest("[data-cat]"); if (!b) return;
+    pick.cat = b.dataset.cat; pick.q = ""; $("#foodSearch").value = ""; renderPicker();
+  };
+  $("#foodResults").onclick = e => { const b = e.target.closest("[data-food]"); if (b) openAmount(findFood(b.dataset.food), pick.meal); };
+  $("#manualBtn").onclick = () => openManual(pick.meal);
+  renderPicker();
+}
+function renderPicker() {
+  document.querySelectorAll("#catChips .chip").forEach(c => c.setAttribute("aria-pressed", String(!pick.q && c.dataset.cat === pick.cat)));
+  const foods = allFoods();
+  let list;
+  if (pick.q) {
+    const q = pick.q.toLowerCase();
+    list = foods.filter(f => f.name.toLowerCase().includes(q));
+  } else if (pick.cat === "recent") {
+    list = state.recent.map(id => foods.find(f => f.id === id)).filter(Boolean);
+  } else {
+    list = foods.filter(f => f.cat === pick.cat);
+  }
+  const empty = pick.q ? "見つからない。下の「手入力で追加する」から登録できる"
+    : pick.cat === "my" ? "手入力で「マイ食品に保存」すると、ここに並ぶ"
+    : "まだ何も記録していない";
+  $("#foodResults").innerHTML = list.length ? list.map(f => `
+    <button class="item" data-food="${esc(f.id)}">
+      <span class="n">${esc(f.name)}${f.est ? '<span class="tag">目安</span>' : ""}</span><span class="kc num">${r0(f.k)} kcal</span>
+      <span class="sub num"><span>${esc(f.unit)}</span>${pfcMini(f.p, f.f, f.c)}</span>
+    </button>`).join("") : `<div class="empty">${empty}</div>`;
+}
+
+// 2) 量を決める。新規（food）と記録の編集（entry）の両方で使う
+function openAmount(food, meal, entry) {
+  let qty = entry ? entry.qty : 1;
+  let mealId = entry ? entry.meal : meal;
+  const src = entry || food;
+  openSheet(src.name, `
+    <p class="hint" style="text-align:center">1単位 = ${esc(src.unit)}${src.est ? "（値は目安）" : ""}</p>
+    <div class="qty">
+      <button id="qMinus" aria-label="減らす">−</button>
+      <div><input id="qInput" type="number" inputmode="decimal" step="0.5" min="0.1" class="num" aria-label="単位の数"><div class="unit">単位</div></div>
+      <button id="qPlus" aria-label="増やす">＋</button>
+    </div>
+    <div class="preview num" id="qPreview"></div>
+    <div class="field" style="margin-top:var(--s4)"><span class="lbl">食事</span>
+      <div class="seg" id="mealSeg">${MEALS.map(m => `<button data-v="${m.id}">${m.name}</button>`).join("")}</div>
+    </div>
+    <div class="btns">
+      ${entry ? '<button class="btn danger" id="qDelete">削除</button>' : '<button class="btn" id="qBack">戻る</button>'}
+      <button class="btn primary" id="qSave">${entry ? "更新" : "追加"}</button>
+    </div>`);
+  const input = $("#qInput");
+  const preview = () => {
+    $("#qPreview").innerHTML = `<div>kcal<b>${r0(src.k * qty)}</b></div><div>P<b>${r1(src.p * qty)}</b></div><div>F<b>${r1(src.f * qty)}</b></div><div>C<b>${r1(src.c * qty)}</b></div>`;
+  };
+  const update = () => {
+    input.value = fmtQty(qty);
+    preview();
+    setSeg("#mealSeg", mealId);
+  };
+  const step = d => { qty = Math.max(0.5, Math.round((qty + d) * 2) / 2); update(); };
+  $("#qMinus").onclick = () => step(-0.5);
+  $("#qPlus").onclick = () => step(0.5);
+  input.oninput = () => { const v = parseFloat(input.value); if (v > 0) { qty = v; preview(); } };
+  $("#mealSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { mealId = b.dataset.v; setSeg("#mealSeg", mealId); } };
+  if (entry) {
+    $("#qDelete").onclick = () => {
+      state.days[day] = entriesOf(day).filter(e => e.id !== entry.id);
+      if (!state.days[day].length) delete state.days[day];
+      save(); closeSheet(); renderToday(); toast("削除しました");
+    };
+  } else {
+    $("#qBack").onclick = () => openPicker(mealId);
+  }
+  $("#qSave").onclick = () => {
+    if (entry) {
+      Object.assign(entry, { qty, meal: mealId });
+      toast("更新しました");
+    } else {
+      // 栄養の値はその時点のものを写して持つ（あとでマイ食品を消しても過去の記録は残る）
+      const e = { id: uid(), meal: mealId, foodId: food.id, name: food.name, unit: food.unit,
+                  k: food.k, p: food.p, f: food.f, c: food.c, qty };
+      if (food.est) e.est = true;
+      (state.days[day] = state.days[day] || []).push(e);
+      state.recent = [food.id, ...state.recent.filter(id => id !== food.id)].slice(0, 20);
+      toast(`${food.name}を追加しました`);
+    }
+    save(); closeSheet(); renderToday();
+  };
+  update();
+}
+
+// 3) 手入力
+function openManual(meal) {
+  openSheet("手入力", `
+    <div class="field"><label for="mName">名前</label><input id="mName" type="text" placeholder="例：コンビニのパスタサラダ"></div>
+    <div class="field"><label for="mUnit">1単位の量</label><input id="mUnit" type="text" placeholder="例：1個、100g" value="1食"></div>
+    <div class="grid4">
+      <div class="field"><label for="mK">kcal</label><input id="mK" type="number" inputmode="decimal" placeholder="自動"></div>
+      <div class="field"><label for="mP">P (g)</label><input id="mP" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="mF">F (g)</label><input id="mF" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="mC">C (g)</label><input id="mC" type="number" inputmode="decimal" placeholder="0"></div>
+    </div>
+    <p class="hint">kcal を空けておくと P×4 + F×9 + C×4 で計算する。パッケージの栄養成分表示をそのまま写すのがおすすめ（炭水化物は「糖質＋食物繊維」の合計）。</p>
+    <label style="display:flex;gap:var(--s2);align-items:center;margin:var(--s4) 0 0;font-weight:700">
+      <input type="checkbox" id="mSave" checked style="width:20px;height:20px;accent-color:var(--accent)"> マイ食品に保存して次から選べるようにする
+    </label>
+    <div class="btns">
+      <button class="btn" id="mBack">戻る</button>
+      <button class="btn primary" id="mNext">次へ</button>
+    </div>`);
+  $("#mBack").onclick = () => openPicker(meal);
+  $("#mNext").onclick = () => {
+    const name = $("#mName").value.trim();
+    if (!name) { $("#mName").focus(); toast("名前を入れてください"); return; }
+    const n = id => Math.max(0, parseFloat($(id).value) || 0);
+    const p = n("#mP"), f = n("#mF"), c = n("#mC");
+    const k = $("#mK").value.trim() ? n("#mK") : p * 4 + f * 9 + c * 4;
+    const food = { id: "my-" + uid(), name, unit: $("#mUnit").value.trim() || "1食", k, p, f, c };
+    if ($("#mSave").checked) { state.myFoods.unshift(food); save(); }
+    openAmount(food, meal);
+  };
+}
+
+/* ==========================================================================
+   履歴
+   ========================================================================== */
+let range = 7;
+function renderHistory() {
+  const today = ymd(new Date()), g = targets();
+  const ds = Array.from({ length: range }, (_, i) => addDays(today, i - range + 1));
+  const rows = ds.map(d => ({ d, t: totals(entriesOf(d)), n: entriesOf(d).length }));
+  $("#kcalChart").innerHTML = barChart(rows, r => r.t.k, g.k, "var(--accent)");
+  $("#pChart").innerHTML = barChart(rows, r => r.t.p, g.p, "var(--p)");
+
+  // 平均は記録した日だけで割る（つけ忘れた日を0kcalとして数えない）
+  const logged = rows.filter(r => r.n);
+  const avg = { k: 0, p: 0, f: 0, c: 0 };
+  logged.forEach(r => { for (const k in avg) avg[k] += r.t[k] / logged.length; });
+  $("#avgStats").innerHTML = `<div>kcal<b class="num">${r0(avg.k)}</b></div><div>P<b class="num">${r0(avg.p)}g</b></div><div>F<b class="num">${r0(avg.f)}g</b></div><div>C<b class="num">${r0(avg.c)}g</b></div>`;
+  $("#avgRatio").innerHTML = ratioHtml(avg, g, `直近${range}日のうち ${logged.length}日分`);
+
+  const all = Object.keys(state.days).filter(d => state.days[d].length).sort().reverse();
+  $("#dayList").innerHTML = all.length ? all.slice(0, 60).map(d => {
+    const t = totals(state.days[d]);
+    return `<button class="item" data-day="${d}"><span class="n num">${mdw(d)}</span><span class="kc num">${r0(t.k)} kcal</span>
+      <span class="sub num">${pfcMini(t.p, t.f, t.c)}</span></button>`;
+  }).join("") : '<div class="empty">まだ記録がない</div>';
+}
+
+// 棒グラフ。目標を点線で重ね、目標の1.1倍を超えた日は棒を薄くする。記録のない日は棒を出さない
+function barChart(rows, val, goal, color) {
+  const W = 340, H = 150, pl = 34, pb = 18, pt = 8;
+  const max = Math.max(goal * 1.2, ...rows.map(val), 1);
+  const unit = max > 500 ? 500 : 50;
+  const top = Math.ceil(max / unit) * unit;
+  const y = v => pt + (H - pt - pb) * (1 - v / top);
+  const bw = (W - pl) / rows.length;
+  const every = rows.length > 10 ? 5 : 1;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (const v of [0, top / 2, top]) s += `<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`;
+  rows.forEach((r, i) => {
+    const v = val(r), x = pl + i * bw + bw * .18, w = bw * .64;
+    if (r.n) s += `<rect x="${x}" y="${y(v)}" width="${w}" height="${Math.max(0, y(0) - y(v))}" rx="${Math.min(4, w / 2)}" fill="${color}" opacity="${v > goal * 1.1 ? .5 : 1}"><title>${mdw(r.d)} ${r0(v)}</title></rect>`;
+    if ((rows.length - 1 - i) % every === 0) s += `<text x="${x + w / 2}" y="${H - 4}" text-anchor="middle">${parseYmd(r.d).getDate()}</text>`;
+  });
+  s += `<line x1="${pl}" x2="${W}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--ink-3)" stroke-dasharray="4 3"/>`;
+  return s + "</svg>";
+}
+
+/* ==========================================================================
+   目標・設定
+   ========================================================================== */
+const PF = ["age", "height", "weight", "pPerKg", "fatPct"];
+const TF = [["tK", "k"], ["tP", "p"], ["tF", "f"], ["tC", "c"]];
+function setSeg(sel, v) { document.querySelectorAll(sel + " button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); }
+
+function renderSettings() {
+  const pr = state.profile;
+  // 入力中の欄は書き換えない（カーソルが飛ぶため）
+  PF.forEach(k => { if (document.activeElement !== $("#" + k)) $("#" + k).value = pr[k]; });
+  $("#activity").value = String(pr.activity);
+  setSeg("#sexSeg", pr.sex); setSeg("#goalSeg", pr.goal); setSeg("#modeSeg", state.mode);
+  const c = calcTargets(pr), g = targets();
+  $("#calcHint").textContent = `基礎代謝 ${c.bmr} kcal・1日の消費の目安 ${c.tdee} kcal（Mifflin-St Jeor 式）。` +
+    `ここから計算した目標は ${c.k} kcal / P ${c.p}g / F ${c.f}g / C ${c.c}g。`;
+  TF.forEach(([id, k]) => { if (document.activeElement !== $("#" + id)) $("#" + id).value = g[k]; });
+
+  $("#myFoodList").innerHTML = state.myFoods.length ? state.myFoods.map(f => `
+    <div class="item"><span class="n">${esc(f.name)}</span>
+      <button class="chip" data-delfood="${esc(f.id)}" style="color:var(--crit)">削除</button>
+      <span class="sub num"><span>${esc(f.unit)}・${r0(f.k)} kcal</span>${pfcMini(f.p, f.f, f.c)}</span>
+    </div>`).join("") : '<div class="empty">手入力で保存した食品がここに並ぶ</div>';
+}
+
+PF.forEach(k => $("#" + k).addEventListener("input", e => {
+  const v = parseFloat(e.target.value);
+  if (v > 0) { state.profile[k] = v; save(); renderSettings(); }
+}));
+$("#activity").onchange = e => { state.profile.activity = parseFloat(e.target.value); save(); renderSettings(); };
+$("#sexSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.sex = b.dataset.v; save(); renderSettings(); } };
+$("#goalSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { state.profile.goal = b.dataset.v; save(); renderSettings(); } };
+function startManual() { const c = calcTargets(state.profile); state.manual = { k: c.k, p: c.p, f: c.f, c: c.c }; }
+$("#modeSeg").onclick = e => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  if (b.dataset.v === "manual" && !state.manual) startManual();
+  state.mode = b.dataset.v; save(); renderSettings();
+};
+TF.forEach(([id, k]) => $("#" + id).addEventListener("input", e => {
+  const v = parseFloat(e.target.value);
+  if (!(v >= 0)) return;
+  if (state.mode !== "manual") { startManual(); state.mode = "manual"; }
+  state.manual[k] = Math.round(v); save(); renderSettings();
+}));
+$("#myFoodList").onclick = e => {
+  const b = e.target.closest("[data-delfood]"); if (!b) return;
+  const f = state.myFoods.find(x => x.id === b.dataset.delfood);
+  if (!f || !confirm(`「${f.name}」をマイ食品から削除しますか？（過去の記録は残ります）`)) return;
+  state.myFoods = state.myFoods.filter(x => x.id !== f.id);
+  state.recent = state.recent.filter(id => id !== f.id);
+  save(); renderSettings(); toast("削除しました");
+};
+
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: "meal-log", version: 1, exportedAt: new Date().toISOString(), ...state }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `meal-log-${ymd(new Date())}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast("書き出しました");
+};
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d || typeof d.days !== "object") throw new Error("MEAL LOG の書き出しファイルではありません");
+    if (!confirm("今のデータを、読み込んだファイルの内容で置き換えますか？")) return;
+    const { days, profile, mode, manual, myFoods, recent } = d;
+    localStorage.setItem(KEY, JSON.stringify({ days, profile, mode, manual, myFoods, recent }));
+    state = load(); renderAll(); toast("読み込みました");
+  } catch (err) { alert("読み込めませんでした：" + err.message); }
+};
+
+/* ==========================================================================
+   画面の切り替えとイベント
+   ========================================================================== */
+let tab = "today";
+function showTab(t) {
+  tab = t;
+  document.querySelectorAll(".tabbar button").forEach(b => {
+    if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  ["today", "history", "settings"].forEach(v => { $("#view-" + v).hidden = v !== t; });
+  $("#fab").hidden = t !== "today";
+  renderAll();
+  window.scrollTo(0, 0);
+}
+function renderAll() {
+  if (tab === "today") renderToday();
+  if (tab === "history") renderHistory();
+  if (tab === "settings") renderSettings();
+}
+document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
+$("#prevDay").onclick = () => { day = addDays(day, -1); renderToday(); };
+$("#nextDay").onclick = () => { if (day < ymd(new Date())) { day = addDays(day, 1); renderToday(); } };
+$("#fab").onclick = () => openPicker();
+$("#meals").onclick = e => {
+  const add = e.target.closest("[data-add]");
+  if (add) return openPicker(add.dataset.add);
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { const en = entriesOf(day).find(x => x.id === ed.dataset.edit); if (en) openAmount(null, en.meal, en); }
+};
+$("#rangeSeg").onclick = e => {
+  const b = e.target.closest("[data-range]"); if (!b) return;
+  range = Number(b.dataset.range);
+  document.querySelectorAll("#rangeSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderHistory();
+};
+$("#dayList").onclick = e => { const b = e.target.closest("[data-day]"); if (b) { day = b.dataset.day; showTab("today"); } };
+
+// 開きっぱなしで日付が変わっても「今日」が古くならないように、画面に戻ってきたら描き直す
+document.addEventListener("visibilitychange", () => { if (!document.hidden) renderAll(); });
+
+showTab("today");
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
