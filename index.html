@@ -60,7 +60,10 @@
   --c: #3a7bd5;                 /* 炭水化物 */
   --track: rgba(120, 120, 128, .16);
   --glass: rgba(249, 249, 252, .72);
+  --glass-edge: rgba(255, 255, 255, .7);
   --glass-blur: saturate(180%) blur(24px);
+  --accent-wash: rgba(31, 122, 74, .12);
+  --shadow-float: 0 10px 34px -8px rgba(0, 0, 0, .20), 0 0 0 .5px rgba(0, 0, 0, .06);
 
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
   --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 20px; --t-xl: 32px; --t-title: 34px;
@@ -86,7 +89,10 @@
     --f: #ffc83d;
     --c: #64a2ff;
     --track: rgba(118, 118, 128, .32);
-    --glass: rgba(22, 22, 24, .72);
+    --glass: rgba(37, 37, 40, .72);
+    --glass-edge: rgba(255, 255, 255, .12);
+    --accent-wash: rgba(60, 207, 127, .18);
+    --shadow-float: 0 10px 34px -8px rgba(0, 0, 0, .6), 0 0 0 .5px rgba(255, 255, 255, .06);
   }
 }
 
@@ -111,7 +117,7 @@ button { cursor: pointer; }
 main {
   max-width: 560px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 44px) var(--s4) calc(env(safe-area-inset-bottom) + 96px);
+  padding: calc(env(safe-area-inset-top) + 44px) var(--s4) calc(env(safe-area-inset-bottom) + 112px);
 }
 .view[hidden] { display: none; }
 
@@ -248,29 +254,37 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
 .seg button[aria-pressed=true] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .hint { font-size: var(--t-xs); color: var(--ink-3); margin: 0; }
 
-/* ---------- タブバー ---------- */
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  display: flex; justify-content: center;
-  padding: 6px var(--s4) calc(env(safe-area-inset-bottom) + 6px);
+/* ---------- タブバー（今の iOS と同じ、画面の端から浮いたカプセル型。LIFT LOG と同じ作り） ----------
+   右に＋ボタンを同じ高さの丸として並べる（iOS のミュージックの検索ボタンと同じ配置）。
+   ＋はどのタブでも出しておき、押したら「今日」に移って追加の画面を開く（タブを替えてもバーの幅が変わらないように） */
+.dock {
+  position: fixed; z-index: 10; left: 0; right: 0; margin: 0 auto; max-width: 560px;
+  /* ホームインジケータ（34px）の分を丸ごと避けると一段浮いて見えるので、バーのすぐ下に収まるまで下げる */
+  bottom: max(var(--s5), calc(env(safe-area-inset-bottom) - 8px));
+  padding: 0 var(--s4); display: flex; gap: var(--s2); align-items: center;
+  pointer-events: none;
+}
+.dock > * { pointer-events: auto; }
+.tabbar, .fab {
   background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  border-top: .5px solid var(--line);
+  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--glass-edge);
 }
-.tabbar .inner { display: flex; width: 100%; max-width: 560px; }
+.tabbar { flex: 1; min-width: 0; display: flex; border-radius: var(--r-pill); padding: var(--s1); }
 .tabbar button {
-  flex: 1; border: 0; background: none; display: grid; justify-items: center; gap: 2px;
-  font-size: 10px; font-weight: 700; color: var(--ink-3); padding: 4px 0;
+  flex: 1; min-width: 0; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 6px 2px 5px; border-radius: var(--r-pill); font-size: 10px; font-weight: 700; color: var(--ink-2);
+  transition: background .2s, color .2s;
 }
-.tabbar button[aria-current=page] { color: var(--accent); }
-.tabbar svg { width: 26px; height: 26px; }
+.tabbar button[aria-current=page] { background: var(--accent-wash); color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
+.tabbar svg { width: 24px; height: 24px; }
 .fab {
-  position: fixed; right: max(var(--s4), calc(50% - 280px + var(--s4))); z-index: 11;
-  bottom: calc(env(safe-area-inset-bottom) + 76px);
-  width: 56px; height: 56px; border-radius: 50%; border: 0;
-  background: var(--accent); color: var(--accent-ink);
-  box-shadow: 0 10px 24px -6px rgba(0,0,0,.35); display: grid; place-items: center;
+  flex: none; width: 60px; height: 60px; border-radius: 50%; border: 0;
+  color: var(--accent); display: grid; place-items: center;
 }
-.fab[hidden] { display: none; }
+.fab:active, .tabbar button:active { transform: scale(.94); }
+/* 内容が短い画面だけ、iPhone のホーム画面アプリで固定バーが上に浮くことがある。
+   常に1pxだけスクロールできる高さにして、どの画面でも同じ挙動にそろえる（LIFT LOG と同じ対策） */
+body { min-height: calc(100dvh + 1px); }
 
 /* ---------- シート ---------- */
 .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.32); opacity: 0; transition: opacity .25s; }
@@ -464,23 +478,22 @@ input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
   </section>
 </main>
 
-<button class="fab" id="fab" aria-label="食事を追加">
-  <svg width="26" height="26" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
-</button>
-
-<nav class="tabbar">
-  <div class="inner">
+<div class="dock">
+  <nav class="tabbar" aria-label="画面">
     <button data-tab="today">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5H12z" fill="currentColor"/></svg>今日
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5H12z" fill="currentColor"/></svg><span>今日</span>
     </button>
     <button data-tab="history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>履歴
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg><span>履歴</span>
     </button>
     <button data-tab="settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>目標
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>目標</span>
     </button>
-  </div>
-</nav>
+  </nav>
+  <button class="fab" id="fab" aria-label="食事を追加">
+    <svg width="26" height="26" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
+</div>
 
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
@@ -1200,7 +1213,6 @@ function showTab(t) {
     if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   ["today", "history", "settings"].forEach(v => { $("#view-" + v).hidden = v !== t; });
-  $("#fab").hidden = t !== "today";
   if (t !== "today") $("#tbTitle").textContent = $(`#view-${t} h1`).textContent;   // 今日は renderToday が決める
   renderAll();
   window.scrollTo(0, 0);
@@ -1221,7 +1233,7 @@ $("#datePick").onchange = e => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { day = v; renderToday(); }   // 未来の日は renderToday が今日に戻す
 };
 $("#nextDay").onclick = () => { if (day < ymd(new Date())) { day = addDays(day, 1); renderToday(); } };
-$("#fab").onclick = () => openPicker();
+$("#fab").onclick = () => { if (tab !== "today") showTab("today"); openPicker(); };
 $("#meals").onclick = e => {
   const add = e.target.closest("[data-add]");
   if (add) return openPicker(add.dataset.add);
