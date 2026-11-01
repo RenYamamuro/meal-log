@@ -66,6 +66,8 @@ try {
 function start() {
   signInBtn.onclick = async () => {
     const provider = new A.GoogleAuthProvider();
+    // 前に使ったアカウントへ自動でログインせず、毎回アカウントを選ぶ画面を出す（別のアカウントに切り替えられるように）
+    provider.setCustomParameters({ prompt: "select_account" });
     try {
       await A.signInWithPopup(auth, provider);
     } catch (e) {
