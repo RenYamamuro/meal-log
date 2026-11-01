@@ -5,8 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MEAL LOG</title>
 <meta name="description" content="食事の記録と、カロリー・PFCバランスの管理">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7" id="themeColor">
+<script>
+// テーマ（自動／ライト／ダーク）。描き始める前に決めて、一瞬白く光るのを防ぐ。端末ごとの設定で同期しない
+(() => {
+  const dark = matchMedia("(prefers-color-scheme: dark)");
+  const apply = () => {
+    let t = "auto";
+    try { t = localStorage.getItem("meal-log-theme") || "auto"; } catch (e) {}
+    const on = t === "dark" || (t === "auto" && dark.matches);
+    document.documentElement.toggleAttribute("data-dark", on);
+    document.getElementById("themeColor").content = on ? "#000000" : "#f2f2f7";
+  };
+  window.applyTheme = apply;
+  dark.addEventListener("change", apply);
+  apply();
+})();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MEAL LOG">
@@ -42,7 +57,7 @@
    - 余白は 4 の倍数、文字は 6 段階＋大見出し
    ========================================================================== */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #f2f2f7;
   --panel: #ffffff;
   --fill: rgba(120, 120, 128, .12);
@@ -79,29 +94,29 @@
   --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, .28), 0 0 0 .5px var(--line);
   --spring: cubic-bezier(.32, .72, 0, 1);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --panel: #1c1c1e;
-    --fill: rgba(118, 118, 128, .24);
-    --line: rgba(84, 84, 88, .55);
-    --press: rgba(255, 255, 255, .12);
-    --ink: #ffffff;
-    --ink-2: #ebebf5;
-    --ink-3: #a1a1aa;
-    --accent: #3ccf7f;
-    --accent-ink: #00210f;
-    --crit: #ff6961;
-    --crit-wash: rgba(255, 69, 58, .16);
-    --p: #ff6b66;
-    --f: #ffc83d;
-    --c: #64a2ff;
-    --track: rgba(118, 118, 128, .32);
-    --glass: rgba(37, 37, 40, .72);
-    --glass-edge: rgba(255, 255, 255, .12);
-    --accent-wash: rgba(60, 207, 127, .18);
-    --shadow-float: 0 10px 34px -8px rgba(0, 0, 0, .6), 0 0 0 .5px rgba(255, 255, 255, .06);
-  }
+/* ダークは html の data-dark で切り替える（付けるかどうかは head のスクリプトが、設定と端末の外観から決める） */
+:root[data-dark] {
+  color-scheme: dark;
+  --bg: #000000;
+  --panel: #1c1c1e;
+  --fill: rgba(118, 118, 128, .24);
+  --line: rgba(84, 84, 88, .55);
+  --press: rgba(255, 255, 255, .12);
+  --ink: #ffffff;
+  --ink-2: #ebebf5;
+  --ink-3: #a1a1aa;
+  --accent: #3ccf7f;
+  --accent-ink: #00210f;
+  --crit: #ff6961;
+  --crit-wash: rgba(255, 69, 58, .16);
+  --p: #ff6b66;
+  --f: #ffc83d;
+  --c: #64a2ff;
+  --track: rgba(118, 118, 128, .32);
+  --glass: rgba(37, 37, 40, .72);
+  --glass-edge: rgba(255, 255, 255, .12);
+  --accent-wash: rgba(60, 207, 127, .18);
+  --shadow-float: 0 10px 34px -8px rgba(0, 0, 0, .6), 0 0 0 .5px rgba(255, 255, 255, .06);
 }
 
 * { box-sizing: border-box; }
@@ -549,6 +564,14 @@ body { min-height: calc(100dvh + 1px); }
         </div>
         <p class="hint" style="margin-top:var(--s3)" id="cloudNote"></p>
       </div>
+    </div>
+
+    <div class="section-label">表示</div>
+    <div class="card">
+      <div class="field" style="margin-top:0"><span class="lbl">テーマ</span>
+        <div class="seg" id="themeSeg"><button data-v="auto">自動</button><button data-v="light">ライト</button><button data-v="dark">ダーク</button></div>
+      </div>
+      <p class="hint">「自動」は iPhone のライト／ダークの設定に合わせる。テーマはこの端末だけの設定で、同期しない。</p>
     </div>
 
     <div class="section-label">データ</div>
@@ -1373,6 +1396,12 @@ $("#aiKeySave").onclick = () => {
 $("#aiKeyClear").onclick = () => {
   ai.apiKey = ""; saveAI(); renderAISettings(); toast("API キーを削除しました");
 };
+function themeSetting() { try { return localStorage.getItem("meal-log-theme") || "auto"; } catch (e) { return "auto"; } }
+$("#themeSeg").onclick = e => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  try { localStorage.setItem("meal-log-theme", b.dataset.v); } catch (e) {}
+  applyTheme(); setSeg("#themeSeg", b.dataset.v);
+};
 $("#aiEffortSeg").onclick = e => {
   const b = e.target.closest("[data-v]"); if (!b) return;
   ai.effort = b.dataset.v; saveAI(); renderAISettings();
@@ -1432,6 +1461,7 @@ const TF = [["tK", "k"], ["tP", "p"], ["tF", "f"], ["tC", "c"]];
 function setSeg(sel, v) { document.querySelectorAll(sel + " button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); }
 
 function renderSettings() {
+  setSeg("#themeSeg", themeSetting());
   renderAISettings();
   const pr = state.profile;
   // 入力中の欄は書き換えない（カーソルが飛ぶため）
