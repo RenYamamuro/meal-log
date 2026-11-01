@@ -336,7 +336,10 @@ body { min-height: calc(100dvh + 1px); }
 .sh-btn.icon { width: 44px; padding: 0; color: var(--ink-2); }
 .sh-btn:disabled { opacity: .4; }
 /* 削除は、純正の設定画面のように本文の下に赤い文字の行として置く */
-.danger-row { width: 100%; margin-top: var(--s5); min-height: 50px; border: 0; border-radius: var(--r-md); background: var(--panel); color: var(--crit); font-size: var(--t-md); }
+.danger-row, .add-row { width: 100%; margin-top: var(--s5); min-height: 50px; border: 0; border-radius: var(--r-md); background: var(--panel); color: var(--crit); font-size: var(--t-md); }
+.add-row { color: var(--accent); }
+.add-row:disabled { color: var(--ink-3); }
+.add-row + .danger-row { margin-top: var(--s3); }
 .sheet-body { overflow-y: auto; padding: var(--s2) var(--s4) max(var(--s5), env(safe-area-inset-bottom)); overscroll-behavior: contain; }
 
 .chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s3) 0; scrollbar-width: none; }
@@ -1065,7 +1068,7 @@ function renderPicker() {
     list = foods.filter(f => f.cat === pick.cat);
   }
   const empty = pick.q ? "見つからない。下の「手入力で追加する」から登録できる"
-    : pick.cat === "my" ? "手入力で「マイ食品に保存」すると、ここに並ぶ"
+    : pick.cat === "my" ? "手入力で「マイ食品に保存」するか、記録をタップして「マイ食品に登録」すると、ここに並ぶ"
     : "まだ何も記録していない";
   $("#foodResults").innerHTML = list.length ? list.map(f => `
     <button class="item" data-food="${esc(f.id)}">
@@ -1090,7 +1093,7 @@ function openAmount(food, meal, entry) {
     <div class="field" style="margin-top:var(--s4)"><span class="lbl">食事</span>
       <div class="seg" id="mealSeg">${MEALS.map(m => `<button data-v="${m.id}">${m.name}</button>`).join("")}</div>
     </div>
-    ${entry ? '<button class="danger-row" id="qDelete">この記録を削除</button>' : ""}`, {
+    ${entry ? myFoodRow(entry) + '<button class="danger-row" id="qDelete">この記録を削除</button>' : ""}`, {
     left: entry ? { id: "qBack", label: "キャンセル" } : { id: "qBack", label: "戻る" },
     right: { id: "qSave", label: entry ? "更新" : "追加", primary: true },
   });
@@ -1110,6 +1113,12 @@ function openAmount(food, meal, entry) {
   $("#mealSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { mealId = b.dataset.v; setSeg("#mealSeg", mealId); } };
   if (entry) {
     $("#qDelete").onclick = () => { closeSheet(); deleteEntry(entry.id); };
+    const add = $("#qMyFood");
+    if (add && !add.disabled) add.onclick = () => {
+      const food = saveAsMyFood(entry);
+      add.disabled = true; add.textContent = "マイ食品に登録済み";
+      toast(`${food.name}をマイ食品に登録しました`);
+    };
     $("#qBack").onclick = closeSheet;
   } else {
     $("#qBack").onclick = () => openPicker(mealId);
@@ -1131,6 +1140,26 @@ function openAmount(food, meal, entry) {
     save(); closeSheet(); renderToday();
   };
   update();
+}
+
+// 記録した食事をマイ食品にする（写真で判定した料理や、消してしまったマイ食品など）。
+// 内蔵の食品はもともと選べるので出さない。同じ名前と量のマイ食品があれば登録済みとする
+function sameMyFood(e) {
+  return state.myFoods.find(f => f.id === e.foodId || (f.name === e.name && f.unit === e.unit));
+}
+function myFoodRow(entry) {
+  if (FOODS.some(f => f.id === entry.foodId)) return "";
+  return sameMyFood(entry)
+    ? '<button class="add-row" id="qMyFood" disabled>マイ食品に登録済み</button>'
+    : '<button class="add-row" id="qMyFood">マイ食品に登録</button>';
+}
+function saveAsMyFood(entry) {
+  const food = { id: "my-" + uid(), name: entry.name, unit: entry.unit, k: entry.k, p: entry.p, f: entry.f, c: entry.c };
+  if (entry.est) food.est = true;
+  state.myFoods.unshift(food);
+  state.recent = [food.id, ...state.recent].slice(0, 20);
+  touchSettings(); save();
+  return food;
 }
 
 // 3) 手入力
