@@ -1591,7 +1591,12 @@ function renderAll() {
   if (tab === "settings") renderSettings();
 }
 $("#settingsBtn").onclick = openSettings;
-document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
+// 今いるタブをもう一度押したら、純正アプリと同じく一番上までなめらかに戻る（別のタブへはすぐ切り替える）
+document.querySelector(".tabbar").onclick = e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  if (b.dataset.tab === tab) window.scrollTo({ top: 0, behavior: "smooth" });
+  else showTab(b.dataset.tab);
+};
 $("#prevDay").onclick = () => { day = addDays(day, -1); renderToday(); };
 $("#goToday").onclick = () => { day = ymd(new Date()); renderToday(); };
 $("#datePick").onchange = e => {
