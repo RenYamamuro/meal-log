@@ -160,6 +160,14 @@ body.scrolled .toolbar {
 }
 .toolbar .t { font-size: var(--t-md); font-weight: 600; opacity: 0; transition: opacity .2s; }
 body.scrolled .toolbar .t { opacity: 1; }
+/* 右上の設定ボタン（ヘルスケアやフィットネスの右上の丸ボタンと同じ位置）。本文の幅に右端をそろえる */
+.tb-btn {
+  position: absolute; right: max(var(--s4), calc((100vw - 560px) / 2 + var(--s4))); bottom: 4px;
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--fill); color: var(--ink); display: grid; place-items: center;
+}
+.tb-btn::after { content: ""; position: absolute; inset: -4px; }
+#settingsPanel { margin-top: calc(var(--s2) - var(--s5)); }   /* 最初の見出しの上だけ詰める（同期が使えないときは同期の欄ごと隠れる） */
 
 /* ---------- 見出しと日付 ---------- */
 .titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s4); }
@@ -432,7 +440,9 @@ body { min-height: calc(100dvh + 1px); }
 </style>
 </head>
 <body>
-<header class="toolbar" aria-hidden="true"><span class="t" id="tbTitle"></span></header>
+<header class="toolbar"><span class="t" id="tbTitle" aria-hidden="true"></span>
+  <button class="tb-btn" id="settingsBtn" aria-label="設定"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button>
+</header>
 <main>
   <!-- ===== 今日 ===== -->
   <section class="view" id="view-today">
@@ -485,7 +495,7 @@ body { min-height: calc(100dvh + 1px); }
     <div class="foodlist" id="dayList"></div>
   </section>
 
-  <!-- ===== 目標・設定 ===== -->
+  <!-- ===== 目標 ===== -->
   <section class="view" id="view-settings" hidden>
     <div class="titlebar"><h1>目標</h1></div>
     <div class="card">
@@ -533,56 +543,6 @@ body { min-height: calc(100dvh + 1px); }
     <div class="section-label">マイ食品</div>
     <div class="foodlist" id="myFoodList"></div>
 
-    <div class="section-label">写真で判定（AI）</div>
-    <div class="card">
-      <div class="cloud-row"><span>API キー</span><span class="cloud-status num" id="aiKeyStatus"></span></div>
-      <div class="field" style="margin-top:var(--s3)" id="aiKeyField">
-        <input id="aiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
-      </div>
-      <div class="btns" style="margin-top:0">
-        <button class="btn primary" id="aiKeySave">保存</button>
-        <button class="btn" id="aiKeyClear">削除</button>
-      </div>
-      <div class="field" style="margin-top:var(--s4)"><span class="lbl">判定の深さ</span>
-        <div class="seg" id="aiEffortSeg"><button data-v="low">浅い（安い）</button><button data-v="medium">標準</button></div>
-      </div>
-      <p class="hint" id="aiUsage"></p>
-      <p class="hint" style="margin-top:var(--s2)">モデルは Claude Opus 5.5。料金は1枚あたり 浅い：約3〜4円、標準：約5〜8円（目安）。
-        キーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--accent)">Anthropic のコンソール</a> で発行する。
-        キーはこの端末の中だけに保存し、クラウド同期や書き出しには含めない。写真は判定のために Anthropic へ送られ、アプリには保存しない。</p>
-    </div>
-
-    <div id="cloudCard" hidden>
-      <div class="section-label">クラウド同期</div>
-      <div class="card">
-        <div class="cloud-row"><span>アカウント</span><span class="cloud-status num" id="cloudStatus"></span></div>
-        <p class="hint" id="cloudEmail" style="margin-top:2px" hidden></p>
-        <div class="btns">
-          <button class="btn primary" id="cloudSignIn">Googleでログイン</button>
-          <button class="btn" id="cloudSyncNow" hidden>今すぐ同期</button>
-          <button class="btn" id="cloudSignOut" hidden>ログアウト</button>
-        </div>
-        <p class="hint" style="margin-top:var(--s3)" id="cloudNote"></p>
-      </div>
-    </div>
-
-    <div class="section-label">表示</div>
-    <div class="card">
-      <div class="field" style="margin-top:0"><span class="lbl">テーマ</span>
-        <div class="seg" id="themeSeg"><button data-v="auto">自動</button><button data-v="light">ライト</button><button data-v="dark">ダーク</button></div>
-      </div>
-      <p class="hint">「自動」は iPhone のライト／ダークの設定に合わせる。テーマはこの端末だけの設定で、同期しない。</p>
-    </div>
-
-    <div class="section-label">データ</div>
-    <div class="card">
-      <div class="btns" style="margin-top:0">
-        <button class="btn" id="exportBtn">書き出し (JSON)</button>
-        <button class="btn" id="importBtn">読み込み</button>
-      </div>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
-      <p class="hint" style="margin-top:var(--s3)">データはこの端末のブラウザに保存される。ログインしていないときは端末どうしで同期しないので、機種変更の前に書き出しておくこと。</p>
-    </div>
   </section>
 </main>
 
@@ -612,6 +572,60 @@ body { min-height: calc(100dvh + 1px); }
     <div class="sh-side right" id="sheetRight"></div>
   </div>
   <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<!-- 設定（右上のボタンから開くシートの中身）。開くときに #sheetBody へ移し、ほかのシートを開くときにここへ戻す -->
+<div id="settingsPanel" hidden>
+  <div id="cloudCard" hidden>
+    <div class="section-label">クラウド同期</div>
+    <div class="card">
+      <div class="cloud-row"><span>アカウント</span><span class="cloud-status num" id="cloudStatus"></span></div>
+      <p class="hint" id="cloudEmail" style="margin-top:2px" hidden></p>
+      <div class="btns">
+        <button class="btn primary" id="cloudSignIn">Googleでログイン</button>
+        <button class="btn" id="cloudSyncNow" hidden>今すぐ同期</button>
+        <button class="btn" id="cloudSignOut" hidden>ログアウト</button>
+      </div>
+      <p class="hint" style="margin-top:var(--s3)" id="cloudNote"></p>
+    </div>
+  </div>
+
+  <div class="section-label">写真で判定（AI）</div>
+  <div class="card">
+    <div class="cloud-row"><span>API キー</span><span class="cloud-status num" id="aiKeyStatus"></span></div>
+    <div class="field" style="margin-top:var(--s3)" id="aiKeyField">
+      <input id="aiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+    </div>
+    <div class="btns" style="margin-top:0">
+      <button class="btn primary" id="aiKeySave">保存</button>
+      <button class="btn" id="aiKeyClear">削除</button>
+    </div>
+    <div class="field" style="margin-top:var(--s4)"><span class="lbl">判定の深さ</span>
+      <div class="seg" id="aiEffortSeg"><button data-v="low">浅い（安い）</button><button data-v="medium">標準</button></div>
+    </div>
+    <p class="hint" id="aiUsage"></p>
+    <p class="hint" style="margin-top:var(--s2)">モデルは Claude Opus 5.5。料金は1枚あたり 浅い：約3〜4円、標準：約5〜8円（目安）。
+      キーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--accent)">Anthropic のコンソール</a> で発行する。
+      キーはこの端末の中だけに保存し、クラウド同期や書き出しには含めない。写真は判定のために Anthropic へ送られ、アプリには保存しない。</p>
+  </div>
+
+  <div class="section-label">表示</div>
+  <div class="card">
+    <div class="field" style="margin-top:0"><span class="lbl">テーマ</span>
+      <div class="seg" id="themeSeg"><button data-v="auto">自動</button><button data-v="light">ライト</button><button data-v="dark">ダーク</button></div>
+    </div>
+    <p class="hint">「自動」は iPhone のライト／ダークの設定に合わせる。テーマはこの端末だけの設定で、同期しない。</p>
+  </div>
+
+  <div class="section-label">データ</div>
+  <div class="card">
+    <div class="btns" style="margin-top:0">
+      <button class="btn" id="exportBtn">書き出し (JSON)</button>
+      <button class="btn" id="importBtn">読み込み</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <p class="hint" style="margin-top:var(--s3)">データはこの端末のブラウザに保存される。ログインしていないときは端末どうしで同期しないので、機種変更の前に書き出しておくこと。</p>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -937,6 +951,8 @@ function openSheet(title, html, { left = null, right = null } = {}) {
   $("#sheetLeft").innerHTML = left ? sheetButton(left) : "";
   $("#sheetRight").innerHTML = right ? sheetButton(right) : `<button class="sh-btn icon" id="sheetClose" aria-label="閉じる">${CLOSE_ICON}</button>`;
   if (!right) $("#sheetClose").onclick = closeSheet;
+  const panel = $("#settingsPanel");
+  if (panel.parentNode === $("#sheetBody")) { panel.hidden = true; document.body.appendChild(panel); }
   $("#sheetBody").innerHTML = html;
   $("#sheetBody").scrollTop = 0;
   delete sheet.dataset.dirty;
@@ -945,6 +961,15 @@ function openSheet(title, html, { left = null, right = null } = {}) {
   sheet.style.transform = "";
   sheet.hidden = scrim.hidden = false;
   requestAnimationFrame(() => { sheet.classList.add("open"); scrim.classList.add("open"); });
+}
+// 設定。中身は HTML に置いたままの部品（ボタンの処理は付けたまま）を、シートの中へ移して見せる
+function openSettings() {
+  openSheet("設定", "");
+  const panel = $("#settingsPanel");
+  $("#sheetBody").appendChild(panel);
+  panel.hidden = false;
+  setSeg("#themeSeg", themeSetting());
+  renderAISettings();
 }
 function closeSheet() {
   sheet.classList.remove("open"); scrim.classList.remove("open");
@@ -1240,11 +1265,11 @@ function startPhoto(meal) {
   photoMeal = meal;
   if (!ai.apiKey) {
     openSheet("写真で判定", `
-      <p>写真から判定するには、Anthropic の API キーが必要です。「目標」タブの「写真で判定（AI）」で入れてください。</p>
+      <p>写真から判定するには、Anthropic の API キーが必要です。右上の設定ボタンから「写真で判定（AI）」で入れてください。</p>
       <button class="btn primary block" id="goAiSettings">設定を開く</button>`);
     $("#goAiSettings").onclick = () => {
-      closeSheet(); showTab("settings");
-      setTimeout(() => $("#aiKey").scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+      openSettings();
+      setTimeout(() => $("#aiKey").scrollIntoView({ block: "center", behavior: "smooth" }), 400);
     };
     return;
   }
@@ -1377,7 +1402,7 @@ function openPhotoResult(res, img) {
   render();
 }
 
-// 設定（目標タブ）
+// 設定（右上のボタンから開くシート）
 function renderAISettings() {
   $("#aiKeyStatus").textContent = ai.apiKey ? `設定済み（…${ai.apiKey.slice(-4)}）` : "未設定";
   $("#aiKey").placeholder = ai.apiKey ? "入れ直すときだけ入力" : "sk-ant-…";
@@ -1461,8 +1486,6 @@ const TF = [["tK", "k"], ["tP", "p"], ["tF", "f"], ["tC", "c"]];
 function setSeg(sel, v) { document.querySelectorAll(sel + " button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); }
 
 function renderSettings() {
-  setSeg("#themeSeg", themeSetting());
-  renderAISettings();
   const pr = state.profile;
   // 入力中の欄は書き換えない（カーソルが飛ぶため）
   PF.forEach(k => { if (document.activeElement !== $("#" + k)) $("#" + k).value = pr[k]; });
@@ -1567,6 +1590,7 @@ function renderAll() {
   if (tab === "history") renderHistory();
   if (tab === "settings") renderSettings();
 }
+$("#settingsBtn").onclick = openSettings;
 document.querySelector(".tabbar").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 $("#prevDay").onclick = () => { day = addDays(day, -1); renderToday(); };
 $("#goToday").onclick = () => { day = ymd(new Date()); renderToday(); };
