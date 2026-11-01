@@ -237,6 +237,7 @@ button.item:active { background: var(--press); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
 .btn.danger { background: var(--crit-wash); color: var(--crit); }
 .btn.block { width: 100%; }
+.btn:disabled { opacity: .4; }
 .btn:active { filter: brightness(.92); }
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s4); }
 
@@ -330,6 +331,20 @@ body { min-height: calc(100dvh + 1px); }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); text-align: center; }
 .stats div { font-size: var(--t-xs); color: var(--ink-3); }
 .stats b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 800; }
+
+/* ---------- 写真で判定 ---------- */
+.photo-btn { display: flex; align-items: center; justify-content: center; gap: var(--s2); margin-bottom: var(--s3); }
+.photo-btn svg { width: 20px; height: 20px; }
+.photo-prev { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: var(--r-md); margin-bottom: var(--s3); }
+.ai-item { display: grid; grid-template-columns: auto 1fr auto; gap: 2px var(--s3); align-items: center; }
+.ai-item input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); grid-row: 1 / span 2; }
+.ai-item.off .n, .ai-item.off .kc, .ai-item.off .sub { opacity: .4; }
+.ai-item .sub { grid-column: 2 / 4; }
+.mini-qty { display: inline-flex; align-items: center; gap: 6px; }
+.mini-qty button { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill); font-weight: 800; padding: 0; }
+.conf-low { color: var(--crit); }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--track); border-top-color: var(--accent); animation: spin .8s linear infinite; margin: var(--s5) auto var(--s3); }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- クラウド同期 ---------- */
 .cloud-row { display: flex; justify-content: space-between; gap: var(--s3); font-weight: 700; }
@@ -453,6 +468,25 @@ body { min-height: calc(100dvh + 1px); }
     <div class="section-label">マイ食品</div>
     <div class="foodlist" id="myFoodList"></div>
 
+    <div class="section-label">写真で判定（AI）</div>
+    <div class="card">
+      <div class="cloud-row"><span>API キー</span><span class="cloud-status num" id="aiKeyStatus"></span></div>
+      <div class="field" style="margin-top:var(--s3)" id="aiKeyField">
+        <input id="aiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+      </div>
+      <div class="btns" style="margin-top:0">
+        <button class="btn primary" id="aiKeySave">保存</button>
+        <button class="btn" id="aiKeyClear">削除</button>
+      </div>
+      <div class="field" style="margin-top:var(--s4)"><span class="lbl">判定の深さ</span>
+        <div class="seg" id="aiEffortSeg"><button data-v="low">浅い（安い）</button><button data-v="medium">標準</button></div>
+      </div>
+      <p class="hint" id="aiUsage"></p>
+      <p class="hint" style="margin-top:var(--s2)">モデルは Claude Opus 5.5。料金は1枚あたり 浅い：約3〜4円、標準：約5〜8円（目安）。
+        キーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--accent)">Anthropic のコンソール</a> で発行する。
+        キーはこの端末の中だけに保存し、クラウド同期や書き出しには含めない。写真は判定のために Anthropic へ送られ、アプリには保存しない。</p>
+    </div>
+
     <div id="cloudCard" hidden>
       <div class="section-label">クラウド同期</div>
       <div class="card">
@@ -506,6 +540,8 @@ body { min-height: calc(100dvh + 1px); }
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- 写真を選ぶ／撮る。iPhone では「写真を撮る」「写真ライブラリ」から選べる -->
+<input type="file" id="photoFile" accept="image/*" hidden>
 
 <script>
 "use strict";
@@ -699,6 +735,8 @@ function toast(msg, undo) {
   toastTimer = setTimeout(() => el.classList.remove("show"), undo ? 4000 : 1800);
 }
 
+const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+               '<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.5-2h6l1.5 2h2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 const CHEVRON = '<svg class="chev" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" ' +
                 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 1.5 7 7l-5.5 5.5"/></svg>';
 
@@ -818,6 +856,7 @@ function openSheet(title, html) {
   $("#sheetBody").innerHTML = html;
   $("#sheetBody").scrollTop = 0;
   delete sheet.dataset.dirty;
+  delete sheet.dataset.run;
   $("#sheetBody").oninput = null;
   sheet.style.transform = "";
   sheet.hidden = scrim.hidden = false;
@@ -941,6 +980,7 @@ function openPicker(meal) {
   pick = { meal: meal || guessMeal(), cat: state.recent.length ? "recent" : "staple", q: "" };
   const chips = [{ id: "recent", name: "最近" }, { id: "my", name: "マイ食品" }, ...CATS];
   openSheet(`${MEALS.find(m => m.id === pick.meal).name}に追加`, `
+    <button class="btn primary block photo-btn" id="photoBtn">${CAMERA}写真で判定する</button>
     <input type="search" id="foodSearch" placeholder="食品を検索（例：鶏むね、納豆）" autocomplete="off">
     <div class="chips" id="catChips">${chips.map(c => `<button class="chip" data-cat="${c.id}">${c.name}</button>`).join("")}</div>
     <div class="foodlist" id="foodResults"></div>
@@ -952,6 +992,7 @@ function openPicker(meal) {
   };
   $("#foodResults").onclick = e => { const b = e.target.closest("[data-food]"); if (b) openAmount(findFood(b.dataset.food), pick.meal); };
   $("#manualBtn").onclick = () => openManual(pick.meal);
+  $("#photoBtn").onclick = () => startPhoto(pick.meal);
   renderPicker();
 }
 function renderPicker() {
@@ -1068,6 +1109,195 @@ function openManual(meal) {
 }
 
 /* ==========================================================================
+   写真で判定（photo-ai.js が Claude API を呼ぶ）
+   API キー・深さ・今月の使用量は、記録とは別のキーに保存する。クラウド同期・書き出しには含めない
+   ========================================================================== */
+const AI_KEY = "meal-log-ai-v1";
+function loadAI() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(AI_KEY)); } catch (e) {}
+  return { apiKey: "", effort: "low", month: "", count: 0, yen: 0, ...(d || {}) };
+}
+let ai = loadAI();
+function saveAI() { try { localStorage.setItem(AI_KEY, JSON.stringify(ai)); } catch (e) {} }
+const thisMonth = () => ymd(new Date()).slice(0, 7);
+function recordAIUse(yen) {
+  if (ai.month !== thisMonth()) Object.assign(ai, { month: thisMonth(), count: 0, yen: 0 });
+  ai.count++; ai.yen += yen || 0;
+  saveAI();
+}
+
+let photoMeal = "breakfast";
+function startPhoto(meal) {
+  photoMeal = meal;
+  if (!ai.apiKey) {
+    openSheet("写真で判定", `
+      <p>写真から判定するには、Anthropic の API キーが必要です。「目標」タブの「写真で判定（AI）」で入れてください。</p>
+      <button class="btn primary block" id="goAiSettings">設定を開く</button>`);
+    $("#goAiSettings").onclick = () => {
+      closeSheet(); showTab("settings");
+      setTimeout(() => $("#aiKey").scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+    };
+    return;
+  }
+  $("#photoFile").value = "";
+  $("#photoFile").click();
+}
+$("#photoFile").onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try { openPhotoConfirm(await shrinkImage(file)); }
+  catch (err) { alert("写真を読み込めませんでした"); }
+};
+
+// 送る前に長い辺を 1280px に縮める。読み取りの精度はほぼ変わらず、送る量と料金が減る
+function shrinkImage(file, max = 1280) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.naturalWidth * s); cv.height = Math.round(img.naturalHeight * s);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      const dataUrl = cv.toDataURL("image/jpeg", 0.85);
+      resolve({ dataUrl, base64: dataUrl.split(",")[1], mediaType: "image/jpeg" });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
+    img.src = url;
+  });
+}
+
+function openPhotoConfirm(img) {
+  openSheet("写真で判定", `
+    <img class="photo-prev" src="${img.dataUrl}" alt="選んだ写真">
+    <div class="field"><label for="aiMemo">メモ（任意）</label><input id="aiMemo" type="text" placeholder="例：ご飯は半分残した、ドレッシングなし"></div>
+    <div class="btns">
+      <button class="btn" id="aiRetake">撮り直す</button>
+      <button class="btn primary" id="aiRun">判定する</button>
+    </div>`);
+  $("#aiRetake").onclick = () => startPhoto(photoMeal);
+  $("#aiRun").onclick = () => runPhoto(img, $("#aiMemo").value.trim());
+}
+
+async function runPhoto(img, memo) {
+  const run = String(Date.now());
+  openSheet("判定中…", `
+    <img class="photo-prev" src="${img.dataUrl}" alt="">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="hint" style="text-align:center">写真から料理と量を見積もっています（10〜30秒ほど）</p>`);
+  sheet.dataset.run = run;
+  let res;
+  try {
+    const { analyzeMealPhoto } = await import("./photo-ai.js");
+    res = await analyzeMealPhoto({ apiKey: ai.apiKey, effort: ai.effort, imageBase64: img.base64, mediaType: img.mediaType, memo });
+  } catch (e) {
+    if (e.yen) recordAIUse(e.yen);
+    const msg = e.name === "PhotoAIError" || e.constructor?.name === "PhotoAIError" ? e.message : "判定できませんでした（" + (e.message || e) + "）";
+    if (sheet.dataset.run !== run) { toast(msg); return; }
+    openSheet("判定できませんでした", `
+      <p>${esc(msg)}</p>
+      <div class="btns"><button class="btn" id="aiBack">閉じる</button><button class="btn primary" id="aiAgain">もう一度</button></div>`);
+    $("#aiBack").onclick = closeSheet;
+    $("#aiAgain").onclick = () => runPhoto(img, memo);
+    return;
+  }
+  recordAIUse(res.yen);
+  // 判定の途中でシートを閉じていたら、結果は出さない（別の画面を開いていることがあるため）
+  if (sheet.dataset.run !== run || !sheet.classList.contains("open")) { toast("判定が終わりましたが、画面を閉じていたので追加していません"); return; }
+  openPhotoResult(res, img);
+}
+
+// 判定結果。品目ごとにチェックを外したり、量を 0.5 倍刻みで直したりしてから、まとめて記録する
+function openPhotoResult(res, img) {
+  const items = res.items.map(it => ({ ...it, on: true, qty: 1 }));
+  let mealId = photoMeal;
+  if (!items.length) {
+    openSheet("食事が見つかりませんでした", `
+      <img class="photo-prev" src="${img.dataUrl}" alt="">
+      <p>${esc(res.note || "写真から料理を見つけられませんでした。")}</p>
+      <div class="btns"><button class="btn" id="aiBack">閉じる</button><button class="btn primary" id="aiRetake">撮り直す</button></div>`);
+    $("#aiBack").onclick = closeSheet;
+    $("#aiRetake").onclick = () => startPhoto(photoMeal);
+    return;
+  }
+  openSheet("判定結果", `
+    ${res.note ? `<p class="hint" style="margin-bottom:var(--s3)">${esc(res.note)}</p>` : ""}
+    <div class="foodlist" id="aiList"></div>
+    <div class="preview num" id="aiTotal" style="margin-top:var(--s3)"></div>
+    <div class="field" style="margin-top:var(--s4)"><span class="lbl">食事</span>
+      <div class="seg" id="aiMealSeg">${MEALS.map(m => `<button data-v="${m.id}">${m.name}</button>`).join("")}</div>
+    </div>
+    <p class="hint">値は写真からの推定（目安）。今回の判定：約${Math.max(1, Math.round(res.yen))}円</p>
+    <div class="btns">
+      <button class="btn" id="aiRetake">撮り直す</button>
+      <button class="btn primary" id="aiAdd">まとめて追加</button>
+    </div>`);
+  // 料金をかけて出した結果なので、引き下ろしで閉じて消えないようにする
+  sheet.dataset.dirty = "1";
+  const render = () => {
+    $("#aiList").innerHTML = items.map((it, i) => `
+      <div class="item ai-item${it.on ? "" : " off"}">
+        <input type="checkbox" data-chk="${i}" ${it.on ? "checked" : ""} aria-label="${esc(it.name)}を追加する">
+        <span class="n">${esc(it.name)}</span><span class="kc num">${r0(it.kcal * it.qty)} kcal</span>
+        <span class="sub num">
+          <span>${esc(it.amount)}${it.confidence === "low" ? '・<span class="conf-low">量はあいまい</span>' : ""}</span>
+          ${pfcMini(it.p * it.qty, it.f * it.qty, it.c * it.qty)}
+          <span class="mini-qty"><button data-dq="-0.5" data-i="${i}" aria-label="減らす">−</button><b>×${fmtQty(it.qty)}</b><button data-dq="0.5" data-i="${i}" aria-label="増やす">＋</button></span>
+        </span>
+      </div>`).join("");
+    const t = { k: 0, p: 0, f: 0, c: 0 };
+    items.filter(it => it.on).forEach(it => { t.k += it.kcal * it.qty; t.p += it.p * it.qty; t.f += it.f * it.qty; t.c += it.c * it.qty; });
+    $("#aiTotal").innerHTML = `<div>kcal<b>${r0(t.k)}</b></div><div>P<b>${r1(t.p)}</b></div><div>F<b>${r1(t.f)}</b></div><div>C<b>${r1(t.c)}</b></div>`;
+    setSeg("#aiMealSeg", mealId);
+    $("#aiAdd").disabled = !items.some(it => it.on);
+  };
+  $("#aiList").onclick = e => {
+    const chk = e.target.closest("[data-chk]");
+    if (chk) { items[+chk.dataset.chk].on = chk.checked; render(); return; }
+    const b = e.target.closest("[data-dq]");
+    if (b) { const it = items[+b.dataset.i]; it.qty = Math.max(0.5, it.qty + Number(b.dataset.dq)); render(); }
+  };
+  $("#aiMealSeg").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { mealId = b.dataset.v; render(); } };
+  $("#aiRetake").onclick = () => startPhoto(mealId);
+  $("#aiAdd").onclick = () => {
+    const picked = items.filter(it => it.on);
+    const list = state.days[day] || (state.days[day] = []);
+    for (const it of picked) {
+      list.push({ id: uid(), meal: mealId, foodId: "photo", name: it.name, unit: it.amount,
+                  k: it.kcal, p: it.p, f: it.f, c: it.c, qty: it.qty, est: true });
+    }
+    touchDay(day); save(); closeSheet(); renderToday();
+    toast(`写真から${picked.length}品を追加しました`);
+  };
+  render();
+}
+
+// 設定（目標タブ）
+function renderAISettings() {
+  $("#aiKeyStatus").textContent = ai.apiKey ? `設定済み（…${ai.apiKey.slice(-4)}）` : "未設定";
+  $("#aiKey").placeholder = ai.apiKey ? "入れ直すときだけ入力" : "sk-ant-…";
+  $("#aiKeyClear").disabled = !ai.apiKey;
+  setSeg("#aiEffortSeg", ai.effort);
+  const m = ai.month === thisMonth();
+  $("#aiUsage").textContent = `今月の判定：${m ? ai.count : 0}回・約${m ? Math.round(ai.yen) : 0}円（目安）`;
+}
+$("#aiKeySave").onclick = () => {
+  const v = $("#aiKey").value.trim();
+  if (!v) { $("#aiKey").focus(); return; }
+  ai.apiKey = v; saveAI();
+  $("#aiKey").value = "";
+  renderAISettings(); toast("API キーを保存しました");
+};
+$("#aiKeyClear").onclick = () => {
+  ai.apiKey = ""; saveAI(); renderAISettings(); toast("API キーを削除しました");
+};
+$("#aiEffortSeg").onclick = e => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  ai.effort = b.dataset.v; saveAI(); renderAISettings();
+};
+
+/* ==========================================================================
    履歴
    ========================================================================== */
 let range = 7;
@@ -1121,6 +1351,7 @@ const TF = [["tK", "k"], ["tP", "p"], ["tF", "f"], ["tC", "c"]];
 function setSeg(sel, v) { document.querySelectorAll(sel + " button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); }
 
 function renderSettings() {
+  renderAISettings();
   const pr = state.profile;
   // 入力中の欄は書き換えない（カーソルが飛ぶため）
   PF.forEach(k => { if (document.activeElement !== $("#" + k)) $("#" + k).value = pr[k]; });

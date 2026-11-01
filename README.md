@@ -21,6 +21,24 @@ Googleでログインすると、LIFT LOG と同じ Firebase を通して端末�
 6. **目標** — 性別・年齢・身長・体重・活動量・目的から自動計算、または自分で直接入力
 7. **クラウド同期** — 「目標」タブから Google でログインすると、どの端末でも同じ記録・目標・マイ食品が出る
 8. **書き出し・読み込み** — JSON でバックアップ
+9. **写真で判定** — 追加画面の「写真で判定する」で食事の写真を撮る／選ぶと、Claude（Opus 5.5）が料理ごとの量と
+   kcal / PFC を見積もる。品目ごとにチェックを外したり、量を 0.5 倍刻みで直したりしてから、まとめて記録する
+
+## 写真で判定（AI）
+
+`photo-ai.js`。Claude API をブラウザから直接呼ぶ（Anthropic の TypeScript SDK を jsDelivr から読み込み、
+`dangerouslyAllowBrowser: true`）。サーバーは持たない。
+
+- **API キー**：本人が Anthropic のコンソールで発行したものを「目標」タブで入れる。`meal-log-ai-v1` に保存し、
+  クラウド同期・書き出しには含めない（端末ごとに入れる）
+- **モデル**：`claude-opus-5-5`。深さ（`output_config.effort`）は設定で「浅い（low）」「標準（medium）」を切り替える。初期値は low
+- **出力**：structured outputs（`output_config.format` の JSON スキーマ）で、`items[]`（name / amount / kcal / p / f / c / confidence）と `note` を受け取る
+- **断られたとき**：`fallbacks: "default"`（beta `server-side-fallback-2026-07-01`）で、サーバー側で別のモデルが引き継ぐ。
+  それでも断られたら「判定できませんでした」と出す
+- **写真**：送る前に長い辺を 1280px に縮める（JPEG）。アプリには保存しない
+- **料金の目安**：返ってきた `usage` のトークン数から計算して、結果画面と「今月の判定」に出す（$4 / $20 per MTok、1ドル150円で換算）。
+  実際の請求は Anthropic のコンソールで確認する
+- 判定結果の記録は `est: true`（目安）として保存し、`unit` には「茶碗1杯 約150g」のような見積もった量が入る
 
 ## 見た目（iOS 純正アプリに寄せている点）
 
@@ -94,6 +112,7 @@ Service Worker（オフライン）は効かない。
 
 - `index.html` — アプリ本体（HTML / CSS / JS すべて）
 - `firebase-sync.js` — クラウド同期（Firestore + Googleログイン）
+- `photo-ai.js` — 写真で判定（Claude API）
 - `sw.js` — オフライン用の Service Worker（ネットワーク優先 + キャッシュ）。中身を変えたら `CACHE` の版を上げる
 - `manifest.json`・`icons/` — ホーム画面に追加したとき用
 - `fonts/` — LIFT LOG と同じ丸ゴシックの書体
