@@ -160,7 +160,7 @@ body.scrolled .toolbar {
 }
 .toolbar .t { font-size: var(--t-md); font-weight: 600; opacity: 0; transition: opacity .2s; }
 body.scrolled .toolbar .t { opacity: 1; }
-/* 右上の設定ボタン（ヘルスケアやフィットネスの右上の丸ボタンと同じ位置）。本文の幅に右端をそろえる */
+/* 右上の設定ボタン（歯車。歯は太い円周の破線で描く。ヘルスケアやフィットネスの右上の丸ボタンと同じ位置）。本文の幅に右端をそろえる */
 .tb-btn {
   position: absolute; right: max(var(--s4), calc((100vw - 560px) / 2 + var(--s4))); bottom: 4px;
   width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%;
@@ -441,7 +441,7 @@ body { min-height: calc(100dvh + 1px); }
 </head>
 <body>
 <header class="toolbar"><span class="t" id="tbTitle" aria-hidden="true"></span>
-  <button class="tb-btn" id="settingsBtn" aria-label="設定"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button>
+  <button class="tb-btn" id="settingsBtn" aria-label="設定"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="8.6" stroke-width="3" stroke-dasharray="3.4 3.35"/><circle cx="12" cy="12" r="6.6" stroke-width="1.8"/><circle cx="12" cy="12" r="2.4" stroke-width="1.8"/></svg></button>
 </header>
 <main>
   <!-- ===== 今日 ===== -->
