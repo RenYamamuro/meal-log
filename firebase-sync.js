@@ -37,6 +37,7 @@ const noteEl     = document.getElementById("cloudNote");
 const signInBtn  = document.getElementById("cloudSignIn");
 const signOutBtn = document.getElementById("cloudSignOut");
 const syncBtn    = document.getElementById("cloudSyncNow");
+const emailEl    = document.getElementById("cloudEmail");   // どのアカウントの記録と同期しているか（同期の時刻とは別にいつも見せる）
 const status = text => { statusEl.textContent = text; };
 const note   = text => { noteEl.textContent = text; };
 
@@ -86,9 +87,11 @@ function start() {
     signInBtn.hidden  = !!user;
     signOutBtn.hidden = !user;
     syncBtn.hidden    = !user;
+    emailEl.hidden    = !(user && user.email);
+    emailEl.textContent = user && user.email ? user.email + " でログイン中" : "";
 
     if (user) {
-      status(user.email || "ログイン中");
+      status("ログイン中");
       note("記録や目標を変えるたびに、自動でクラウドへ反映されます。アプリを開き直したときに、ほかの端末の記録も取り込みます。");
       // 本体の save() から呼ばれる。目標の数字を打つたびに呼ばれるので、少し待ってまとめて送る
       window.cloudSync = () => { clearTimeout(timer); timer = setTimeout(syncNow, 1200); };
