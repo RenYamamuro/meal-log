@@ -73,6 +73,10 @@
   --p: #d9534f;                 /* たんぱく質 */
   --f: #e0a100;                 /* 脂質 */
   --c: #3a7bd5;                 /* 炭水化物 */
+  /* 文字にするときは同じ色の濃い版（リングの色のままだと、脂質の黄色は白地で 2.3:1 しかなく読みにくい）。どれも白地 4.5:1 以上 */
+  --p-ink: #c0392b;
+  --f-ink: #9a6b00;
+  --c-ink: #2563c9;
   --track: rgba(120, 120, 128, .16);
   --glass: rgba(249, 249, 252, .72);
   --glass-edge: rgba(255, 255, 255, .7);
@@ -112,6 +116,9 @@
   --p: #ff6b66;
   --f: #ffc83d;
   --c: #64a2ff;
+  --p-ink: var(--p);
+  --f-ink: var(--f);
+  --c-ink: var(--c);
   --track: rgba(118, 118, 128, .32);
   --glass: rgba(37, 37, 40, .72);
   --glass-edge: rgba(255, 255, 255, .12);
@@ -209,6 +216,7 @@ h1 { font-size: var(--t-title); font-weight: 700; letter-spacing: .01em; margin:
 .lg .val { font-size: var(--t-lg); font-weight: 700; line-height: 1.15; white-space: nowrap; }
 .lg .val small { font-size: var(--t-xs); font-weight: 500; color: var(--ink-3); }
 .lg.over .val { color: var(--crit); }
+.lg .done { margin-left: var(--s2); padding: 1px 7px; border-radius: var(--r-pill); background: var(--accent-wash); color: var(--accent); font-size: var(--t-c2); font-weight: 600; vertical-align: 1px; }
 
 .remain { display: flex; justify-content: space-around; text-align: center; margin-top: var(--s4); padding-top: var(--s3); border-top: .5px solid var(--line); font-size: var(--t-xs); color: var(--ink-3); }
 .remain b { display: block; font-size: var(--t-md); color: var(--ink); font-weight: 600; }
@@ -853,10 +861,10 @@ function renderToday() {
 
   // アクティビティリング。外から カロリー・P・F・C
   const RINGS = [
-    { key: "k", name: "カロリー",   unit: "kcal", color: "var(--accent)" },
-    { key: "p", name: "たんぱく質", unit: "g",    color: "var(--p)" },
-    { key: "f", name: "脂質",       unit: "g",    color: "var(--f)" },
-    { key: "c", name: "炭水化物",   unit: "g",    color: "var(--c)" },
+    { key: "k", name: "カロリー",   unit: "kcal", color: "var(--accent)", ink: "var(--accent)", warn: true },
+    { key: "p", name: "たんぱく質", unit: "g",    color: "var(--p)",      ink: "var(--p-ink)" },
+    { key: "f", name: "脂質",       unit: "g",    color: "var(--f)",      ink: "var(--f-ink)",  warn: true },
+    { key: "c", name: "炭水化物",   unit: "g",    color: "var(--c)",      ink: "var(--c-ink)" },
   ];
   const SW = 13, GAP = 2;
   $("#rings").innerHTML = `<svg viewBox="0 0 148 148" aria-hidden="true">${RINGS.map((r, i) => {
@@ -871,8 +879,12 @@ function renderToday() {
   }).join("")}</svg>`;
   $("#legendRows").innerHTML = RINGS.map(r => {
     const v = t[r.key], goal = g[r.key];
-    return `<div class="lg${goal && v > goal * 1.1 ? " over" : ""}">
-      <div class="name" style="color:${r.color}">${r.name}</div>
+    // 赤い「超過」は取りすぎが問題になるカロリーと脂質だけ。たんぱく質は目標に届いたら「達成」。
+    // 炭水化物は目標が「残り全部」なので、超えればカロリーの方が赤くなる
+    const over = r.warn && goal && v > goal * 1.1;
+    const done = r.key === "p" && goal && v >= goal;
+    return `<div class="lg${over ? " over" : ""}">
+      <div class="name" style="color:${r.ink}">${r.name}${done ? '<span class="done">達成</span>' : ""}</div>
       <div class="val num">${r0(v)}<small> / ${goal}${r.unit}</small></div></div>`;
   }).join("");
 
