@@ -13,7 +13,7 @@
 //   - 毎回すべてを読み直さず、前回の同期のあとにクラウドで変わった日だけを読む（syncedAt で絞る）
 //   - 同じ日を2つの端末で変えたときは、あとから変えた方が勝つ（日単位の上書き）
 //   - 空にした日も [] のまま送る。これが「この日は消した」の印になる
-//   - 目標・からだの値・マイ食品は users/{uid}/mealSettings/main の1つにまとめる
+//   - 目標・からだの値・マイ食品・セット・体重は users/{uid}/mealSettings/main の1つにまとめる
 //
 // Firebase の設定値（LIFT LOG と同じ）。公開されても問題ない値で、
 // 安全性は Firestore のセキュリティルール（ログインした本人だけが自分の users/{uid}/ 以下を読み書きできる）で担保する。
@@ -189,7 +189,7 @@ async function syncDays() {
   return changed;
 }
 
-// 目標・からだの値・マイ食品。まとめて1つで、あとから変えた方が勝つ
+// 目標・からだの値・マイ食品・セット・体重。まとめて1つで、あとから変えた方が勝つ
 async function syncSettings() {
   const s = window.mealApp.getState();
   const ref = F.doc(db, "users", currentUid, "mealSettings", "main");
@@ -201,6 +201,8 @@ async function syncSettings() {
     s.mode = r.mode === "manual" ? "manual" : "auto";
     s.manual = r.manual || null;
     s.myFoods = r.myFoods || [];
+    s.sets = r.sets || [];
+    s.weights = r.weights || {};
     s.settingsAt = r.updatedAt;
     s.settingsDirty = false;
     return true;
@@ -208,7 +210,7 @@ async function syncSettings() {
   if (!r || s.settingsDirty) {
     const at = s.settingsAt || Date.now();
     s.settingsAt = at;
-    await F.setDoc(ref, { profile: s.profile, mode: s.mode, manual: s.manual, myFoods: s.myFoods, updatedAt: at });
+    await F.setDoc(ref, { profile: s.profile, mode: s.mode, manual: s.manual, myFoods: s.myFoods, sets: s.sets, weights: s.weights, updatedAt: at });
     if (s.settingsAt === at) s.settingsDirty = false;   // 送っている間にまた変えたなら次で送り直す
   }
   return false;

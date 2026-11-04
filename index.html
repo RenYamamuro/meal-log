@@ -233,6 +233,9 @@ h1 { font-size: var(--t-title); font-weight: 700; letter-spacing: .01em; margin:
 .meal-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s3) var(--s4); }
 .meal-head .t { font-weight: 600; }
 .meal-head .k { font-size: var(--t-sm); color: var(--ink-3); }
+.meal-head .t { margin-right: auto; }
+.mh-btn { position: relative; border: 0; background: none; padding: 0; margin-right: var(--s3); color: var(--accent); font-size: var(--t-sm); }
+.mh-btn::after { content: ""; position: absolute; inset: -12px -6px; }
 /* 行。区切り線は純正の一覧と同じく、左端から少し内側で始める（::before）。
    タップで先へ進む行には右端に「＞」（.chev）を付ける */
 .item {
@@ -249,6 +252,7 @@ button.item:active { background: var(--press); }
 .item .n { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .kc { font-weight: 600; text-align: right; }
 .item .sub { font-size: var(--t-xs); color: var(--ink-3); grid-column: 1 / 3; display: flex; gap: var(--s3); flex-wrap: wrap; }
+.item .sub .names { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; }
 .chev { grid-column: 3; grid-row: 1 / span 2; width: 8px; height: 14px; color: var(--ink-3); opacity: .6; }
 
 /* 左へスワイプすると出る操作（サブスク管理と同じ作り） */
@@ -287,10 +291,12 @@ button.item:active { background: var(--press); }
 
 .field { display: grid; gap: 6px; margin-bottom: var(--s3); min-width: 0; }
 .field label, .field .lbl { font-size: var(--t-xs); color: var(--ink-3); }
-input[type=text], input[type=number], input[type=search], input[type=password], select {
+input[type=text], input[type=number], input[type=search], input[type=password], .field input[type=date], select {
   width: 100%; border: 0; border-radius: var(--r-sm); background: var(--fill);
   padding: 11px var(--s3); font-size: var(--t-md); min-height: 44px; outline: none;
 }
+/* 日付の欄は iPhone では中央寄せの独自の見た目になるので、ほかの欄とそろえる */
+.field input[type=date] { display: block; -webkit-appearance: none; appearance: none; color: var(--ink); font-family: inherit; text-align: left; }
 input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); }
@@ -367,10 +373,10 @@ body { min-height: calc(100dvh + 1px); }
 .sh-btn.icon { width: 44px; padding: 0; color: var(--ink-2); }
 .sh-btn:disabled { opacity: .4; }
 /* 削除は、純正の設定画面のように本文の下に赤い文字の行として置く */
-.danger-row, .add-row { width: 100%; margin-top: var(--s5); min-height: 50px; border: 0; border-radius: var(--r-md); background: var(--panel); color: var(--crit); font-size: var(--t-md); }
-.add-row { color: var(--accent); }
-.add-row:disabled { color: var(--ink-3); }
-.add-row + .danger-row { margin-top: var(--s3); }
+.danger-row, .action-row { width: 100%; margin-top: var(--s5); min-height: 50px; border: 0; border-radius: var(--r-md); background: var(--panel); color: var(--crit); font-size: var(--t-md); }
+.action-row { color: var(--accent); }
+.action-row:disabled { color: var(--ink-3); }
+.action-row + .danger-row { margin-top: var(--s3); }
 .sheet-body { overflow-y: auto; padding: var(--s2) var(--s4) max(var(--s5), env(safe-area-inset-bottom)); overscroll-behavior: contain; }
 
 .chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s3) 0; scrollbar-width: none; }
@@ -392,6 +398,10 @@ body { min-height: calc(100dvh + 1px); }
 
 /* ---------- 履歴 ---------- */
 .chart svg { width: 100%; height: auto; display: block; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s2); }
+.card-head h2 { margin: 0; }
+.weight-now { font-size: var(--t-xs); color: var(--ink-3); margin-bottom: var(--s2); }
+.weight-now b { font-size: var(--t-lg); color: var(--ink); font-weight: 600; margin-right: var(--s2); }
 .chart text { font-size: 10px; fill: var(--ink-3); font-family: inherit; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); text-align: center; }
 .stats div { font-size: var(--t-xs); color: var(--ink-3); }
@@ -400,6 +410,7 @@ body { min-height: calc(100dvh + 1px); }
 /* ---------- 写真で判定 ---------- */
 .photo-btn { display: flex; align-items: center; justify-content: center; gap: var(--s2); margin-bottom: var(--s3); }
 .photo-btn svg { width: 20px; height: 20px; }
+.read-note { margin: 0 0 var(--s3); padding: var(--s3); border-radius: var(--r-md); background: var(--accent-wash); color: var(--ink-2); }
 .photo-prev { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: var(--r-md); margin-bottom: var(--s3); }
 .ai-item { display: grid; grid-template-columns: auto 1fr auto; gap: 2px var(--s3); align-items: center; }
 /* 選ぶ印は純正（リマインダー・メール）と同じ丸。見た目は 24pt、押せる範囲は 44pt */
@@ -494,6 +505,11 @@ body { min-height: calc(100dvh + 1px); }
       <h2>たんぱく質</h2>
       <div id="pChart"></div>
     </div>
+    <div class="card chart">
+      <div class="card-head"><h2>体重</h2><button class="chip" id="weightBtn">記録</button></div>
+      <div class="weight-now num" id="weightNow"></div>
+      <div id="weightChart"></div>
+    </div>
     <div class="card">
       <h2>記録した日の平均</h2>
       <div class="stats" id="avgStats"></div>
@@ -550,6 +566,9 @@ body { min-height: calc(100dvh + 1px); }
 
     <div class="section-label">マイ食品</div>
     <div class="foodlist" id="myFoodList"></div>
+
+    <div class="section-label">セット</div>
+    <div class="foodlist" id="setList"></div>
 
   </section>
 </main>
@@ -742,9 +761,11 @@ function load() {
     manual: d.manual || null,                          // { k, p, f, c }
     myFoods: d.myFoods || [],
     recent: d.recent || [],                            // 最近使った食品の id（新しい順）
+    sets: d.sets || [],                                // セット { id, name, items: [記録と同じ形（id・meal なし）] }
+    weights: d.weights || {},                          // 体重 { "YYYY-MM-DD": kg }
     // ↓ クラウド同期（firebase-sync.js）用。どの日・設定が、いつ変わり、まだ送っていないか
     dayAt: d.dayAt || {},                              // { "YYYY-MM-DD": 最後に変えた時刻(ms) }
-    settingsAt: d.settingsAt || 0,                     // profile / mode / manual / myFoods を最後に変えた時刻
+    settingsAt: d.settingsAt || 0,                     // profile / mode / manual / myFoods / sets / weights を最後に変えた時刻
     dirtyDays: d.dirtyDays || [],                      // まだクラウドに送っていない日
     settingsDirty: !!d.settingsDirty,
   };
@@ -903,7 +924,9 @@ function renderToday() {
     const items = list.filter(e => e.meal === m.id);
     const mt = totals(items);
     return `<div class="meal">
-      <div class="meal-head"><span class="t">${m.name}</span><span class="k num">${items.length ? r0(mt.k) + " kcal" : ""}</span></div>
+      <div class="meal-head"><span class="t">${m.name}</span>
+        ${items.length > 1 ? `<button class="mh-btn" data-saveset="${m.id}">セットに保存</button>` : ""}
+        <span class="k num">${items.length ? r0(mt.k) + " kcal" : ""}</span></div>
       ${items.map(itemHtml).join("")}
       <button class="add-row" data-add="${m.id}">＋ ${m.name}を追加</button>
     </div>`;
@@ -1098,9 +1121,13 @@ function findFood(id) { return allFoods().find(f => f.id === id); }
 let pick = { meal: "breakfast", cat: "recent", q: "" };
 function openPicker(meal) {
   pick = { meal: meal || guessMeal(), cat: state.recent.length ? "recent" : "staple", q: "" };
-  const chips = [{ id: "recent", name: "最近" }, { id: "my", name: "マイ食品" }, ...CATS];
+  const chips = [{ id: "recent", name: "最近" }, { id: "set", name: "セット" }, { id: "my", name: "マイ食品" }, ...CATS];
+  const last = lastMeal(pick.meal);
   openSheet(`${MEALS.find(m => m.id === pick.meal).name}に追加`, `
     <button class="btn primary block photo-btn" id="photoBtn">${CAMERA}写真で判定する</button>
+    ${last ? `<div class="foodlist" style="margin-bottom:var(--s3)"><button class="item" id="copyLast">
+      <span class="n">前回の${MEALS.find(m => m.id === pick.meal).name}をコピー</span><span class="kc num">${r0(totals(last.items).k)} kcal</span>${CHEVRON}
+      <span class="sub"><span class="num">${mdw(last.d)}</span><span class="names">${esc(last.items.map(e => e.name).join("、"))}</span></span></button></div>` : ""}
     <input type="search" id="foodSearch" placeholder="食品を検索（例：鶏むね、納豆）" autocomplete="off">
     <div class="chips" id="catChips">${chips.map(c => `<button class="chip" data-cat="${c.id}">${c.name}</button>`).join("")}</div>
     <div class="foodlist" id="foodResults"></div>
@@ -1110,7 +1137,12 @@ function openPicker(meal) {
     const b = e.target.closest("[data-cat]"); if (!b) return;
     pick.cat = b.dataset.cat; pick.q = ""; $("#foodSearch").value = ""; renderPicker();
   };
-  $("#foodResults").onclick = e => { const b = e.target.closest("[data-food]"); if (b) openAmount(findFood(b.dataset.food), pick.meal); };
+  $("#foodResults").onclick = e => {
+    const b = e.target.closest("[data-food]"); if (b) return openAmount(findFood(b.dataset.food), pick.meal);
+    const st = e.target.closest("[data-set]");
+    if (st) { const set = state.sets.find(x => x.id === st.dataset.set); if (set) addCopies(set.items, pick.meal, `${set.name}を追加しました`); }
+  };
+  if (last) $("#copyLast").onclick = () => addCopies(last.items, pick.meal, `${mdw(last.d)}の${MEALS.find(m => m.id === pick.meal).name}をコピーしました`);
   $("#manualBtn").onclick = () => openManual(pick.meal);
   $("#photoBtn").onclick = () => startPhoto(pick.meal);
   renderPicker();
@@ -1124,6 +1156,14 @@ function renderPicker() {
     list = foods.filter(f => f.name.toLowerCase().includes(q));
   } else if (pick.cat === "recent") {
     list = state.recent.map(id => foods.find(f => f.id === id)).filter(Boolean);
+  } else if (pick.cat === "set") {
+    $("#foodResults").innerHTML = state.sets.length ? state.sets.map(st => {
+      const t = totals(st.items);
+      return `<button class="item" data-set="${esc(st.id)}">
+        <span class="n">${esc(st.name)}</span><span class="kc num">${r0(t.k)} kcal</span>${CHEVRON}
+        <span class="sub num"><span class="names">${esc(st.items.map(e => e.name).join("、"))}</span>${pfcMini(t.p, t.f, t.c)}</span></button>`;
+    }).join("") : '<div class="empty">今日の画面で、2品以上ある食事の「セットに保存」を押すと、ここに並ぶ</div>';
+    return;
   } else {
     list = foods.filter(f => f.cat === pick.cat);
   }
@@ -1135,6 +1175,54 @@ function renderPicker() {
       <span class="n">${esc(f.name)}${f.est ? '<span class="tag">目安</span>' : ""}</span><span class="kc num">${r0(f.k)} kcal</span>
       ${CHEVRON}<span class="sub num"><span>${esc(f.unit)}</span>${pfcMini(f.p, f.f, f.c)}</span>
     </button>`).join("") : `<div class="empty">${empty}</div>`;
+}
+
+// 前回のその食事（いま見ている日より前で、いちばん近い日）。60日前まで探す
+function lastMeal(meal) {
+  for (let i = 1; i <= 60; i++) {
+    const d = addDays(day, -i), items = entriesOf(d).filter(e => e.meal === meal);
+    if (items.length) return { d, items };
+  }
+  return null;
+}
+// 記録をまとめて写す（前回のコピー・セット）。数秒は「元に戻す」で取り消せる
+function addCopies(items, meal, msg) {
+  const list = (state.days[day] = state.days[day] || []);
+  const added = items.map(e => {
+    const c = { id: uid(), meal, foodId: e.foodId, name: e.name, unit: e.unit, k: e.k, p: e.p, f: e.f, c: e.c, qty: e.qty };
+    if (e.est) c.est = true;
+    return c;
+  });
+  list.push(...added);
+  const d = day;
+  touchDay(d); save(); closeSheet(); renderToday();
+  toast(msg, () => {
+    const ids = new Set(added.map(e => e.id));
+    state.days[d] = entriesOf(d).filter(e => !ids.has(e.id));
+    touchDay(d); save(); renderToday();
+  });
+}
+// 今日の画面の食事を、名前を付けてセットにする
+function openSaveSet(meal) {
+  const items = entriesOf(day).filter(e => e.meal === meal);
+  if (!items.length) return;
+  const t = totals(items);
+  openSheet("セットに保存", `
+    <div class="field"><label for="setName">セットの名前</label><input id="setName" type="text" value="${esc(items.map(e => e.name).join("・").slice(0, 24))}"></div>
+    <div class="foodlist">${items.map(e => `<div class="item"><span class="n">${esc(e.name)}</span><span class="kc num">${r0(e.k * e.qty)} kcal</span>
+      <span class="sub num"><span>${esc(e.unit)} × ${fmtQty(e.qty)}</span></span></div>`).join("")}</div>
+    <p class="hint">合計 ${r0(t.k)} kcal。次からは「＋」→「セット」で、この組み合わせを1回で追加できる。セットは「目標」タブで削除できる。</p>`, {
+    left: { id: "setCancel", label: "キャンセル" },
+    right: { id: "setSave", label: "保存", primary: true },
+  });
+  $("#setCancel").onclick = closeSheet;
+  $("#setSave").onclick = () => {
+    const name = $("#setName").value.trim();
+    if (!name) { $("#setName").focus(); toast("名前を入れてください"); return; }
+    state.sets.unshift({ id: "set-" + uid(), name, items: items.map(({ id, meal, ...rest }) => rest) });
+    touchSettings(); save(); closeSheet();
+    toast(`${name}をセットに保存しました`);
+  };
 }
 
 // 2) 量を決める。新規（food）と記録の編集（entry）の両方で使う
@@ -1210,8 +1298,8 @@ function sameMyFood(e) {
 function myFoodRow(entry) {
   if (FOODS.some(f => f.id === entry.foodId)) return "";
   return sameMyFood(entry)
-    ? '<button class="add-row" id="qMyFood" disabled>マイ食品に登録済み</button>'
-    : '<button class="add-row" id="qMyFood">マイ食品に登録</button>';
+    ? '<button class="action-row" id="qMyFood" disabled>マイ食品に登録済み</button>'
+    : '<button class="action-row" id="qMyFood">マイ食品に登録</button>';
 }
 function saveAsMyFood(entry) {
   const food = { id: "my-" + uid(), name: entry.name, unit: entry.unit, k: entry.k, p: entry.p, f: entry.f, c: entry.c };
@@ -1223,15 +1311,19 @@ function saveAsMyFood(entry) {
 }
 
 // 3) 手入力
-function openManual(meal) {
+// prefill：成分表示から読み取った値など（{ name, unit, k, p, f, c, note }）。あれば欄に入れて開く
+function openManual(meal, prefill) {
+  const v = { name: "", unit: "1食", k: "", p: "", f: "", c: "", ...(prefill || {}) };
   openSheet("手入力", `
-    <div class="field"><label for="mName">名前</label><input id="mName" type="text" placeholder="例：コンビニのパスタサラダ"></div>
-    <div class="field"><label for="mUnit">1単位の量</label><input id="mUnit" type="text" placeholder="例：1個、100g" value="1食"></div>
+    <button class="btn block photo-btn" id="labelBtn">${CAMERA}栄養成分表示を撮って入力</button>
+    ${prefill && prefill.note !== undefined ? `<p class="hint read-note">成分表示から読み取りました。数字が表示と合っているか確かめてください。${prefill.note ? esc(prefill.note) : ""}</p>` : ""}
+    <div class="field"><label for="mName">名前</label><input id="mName" type="text" placeholder="例：コンビニのパスタサラダ" value="${esc(v.name)}"></div>
+    <div class="field"><label for="mUnit">1単位の量</label><input id="mUnit" type="text" placeholder="例：1個、100g" value="${esc(v.unit)}"></div>
     <div class="grid4">
-      <div class="field"><label for="mK">kcal</label><input id="mK" type="number" inputmode="decimal" placeholder="自動"></div>
-      <div class="field"><label for="mP">P (g)</label><input id="mP" type="number" inputmode="decimal" placeholder="0"></div>
-      <div class="field"><label for="mF">F (g)</label><input id="mF" type="number" inputmode="decimal" placeholder="0"></div>
-      <div class="field"><label for="mC">C (g)</label><input id="mC" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="mK">kcal</label><input id="mK" type="number" inputmode="decimal" placeholder="自動" value="${v.k}"></div>
+      <div class="field"><label for="mP">P (g)</label><input id="mP" type="number" inputmode="decimal" placeholder="0" value="${v.p}"></div>
+      <div class="field"><label for="mF">F (g)</label><input id="mF" type="number" inputmode="decimal" placeholder="0" value="${v.f}"></div>
+      <div class="field"><label for="mC">C (g)</label><input id="mC" type="number" inputmode="decimal" placeholder="0" value="${v.c}"></div>
     </div>
     <p class="hint">kcal を空けておくと P×4 + F×9 + C×4 で計算する。パッケージの栄養成分表示をそのまま写すのがおすすめ（炭水化物は「糖質＋食物繊維」の合計）。</p>
     <label class="switch-row"><span>マイ食品に保存</span><input type="checkbox" class="switch" id="mSave" checked></label>
@@ -1240,7 +1332,14 @@ function openManual(meal) {
     right: { id: "mNext", label: "次へ", primary: true },
   });
   $("#sheetBody").oninput = () => { sheet.dataset.dirty = "1"; };   // 書き始めたら引き下ろしでは閉じない
+  if (prefill) sheet.dataset.dirty = "1";
   $("#mBack").onclick = () => openPicker(meal);
+  // 書きかけの名前などは残したまま、成分表示の数字だけ読み取って戻ってくる
+  $("#labelBtn").onclick = () => {
+    const draft = { name: $("#mName").value.trim(), unit: $("#mUnit").value.trim() || "1食",
+                    k: $("#mK").value, p: $("#mP").value, f: $("#mF").value, c: $("#mC").value };
+    startLabel(meal, draft);
+  };
   $("#mNext").onclick = () => {
     const name = $("#mName").value.trim();
     if (!name) { $("#mName").focus(); toast("名前を入れてください"); return; }
@@ -1273,27 +1372,81 @@ function recordAIUse(yen) {
 }
 
 let photoMeal = "breakfast";
-function startPhoto(meal) {
-  photoMeal = meal;
-  if (!ai.apiKey) {
-    openSheet("写真で判定", `
-      <p>写真から判定するには、Anthropic の API キーが必要です。右上の設定ボタンから「写真で判定（AI）」で入れてください。</p>
-      <button class="btn primary block" id="goAiSettings">設定を開く</button>`);
-    $("#goAiSettings").onclick = () => {
-      openSettings();
-      setTimeout(() => $("#aiKey").scrollIntoView({ block: "center", behavior: "smooth" }), 400);
-    };
-    return;
-  }
+// 写真の使い道。"meal" は食事の判定、"label" は栄養成分表示の読み取り（labelDraft は読み取り前の手入力の中身）
+let photoMode = "meal", labelDraft = null;
+// API キーが無ければ、設定へ案内して false を返す
+function needAIKey(title) {
+  if (ai.apiKey) return true;
+  openSheet(title, `
+    <p>写真を読むには、Anthropic の API キーが必要です。右上の設定ボタンから「写真で判定（AI）」で入れてください。</p>
+    <button class="btn primary block" id="goAiSettings">設定を開く</button>`);
+  $("#goAiSettings").onclick = () => {
+    openSettings();
+    setTimeout(() => $("#aiKey").scrollIntoView({ block: "center", behavior: "smooth" }), 400);
+  };
+  return false;
+}
+function pickPhoto(mode) {
+  photoMode = mode;
   $("#photoFile").value = "";
   $("#photoFile").click();
+}
+function startPhoto(meal) {
+  photoMeal = meal;
+  if (needAIKey("写真で判定")) pickPhoto("meal");
+}
+function startLabel(meal, draft) {
+  photoMeal = meal; labelDraft = draft;
+  if (needAIKey("成分表示の読み取り")) pickPhoto("label");
 }
 $("#photoFile").onchange = async e => {
   const file = e.target.files[0];
   if (!file) return;
-  try { openPhotoConfirm(await shrinkImage(file)); }
-  catch (err) { alert("写真を読み込めませんでした"); }
+  let img;
+  try { img = await shrinkImage(file); }
+  catch (err) { alert("写真を読み込めませんでした"); return; }
+  if (photoMode === "label") runLabel(img);
+  else openPhotoConfirm(img);
 };
+
+// 栄養成分表示を読み取って、手入力の欄に入れて戻る。読めなかったら書きかけのまま戻れるようにする
+async function runLabel(img) {
+  const run = String(Date.now()), draft = labelDraft || { name: "", unit: "1食" };
+  openSheet("読み取り中…", `
+    <img class="photo-prev" src="${img.dataUrl}" alt="">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="hint" style="text-align:center">栄養成分表示の数字を読み取っています（5〜15秒ほど）</p>`);
+  sheet.dataset.run = run;
+  const fail = msg => {
+    if (sheet.dataset.run !== run) { toast(msg); return; }
+    openSheet("読み取れませんでした", `
+      <img class="photo-prev" src="${img.dataUrl}" alt="">
+      <p>${esc(msg)}</p>
+      <button class="btn primary block" id="lbAgain">撮り直す</button>
+      <button class="btn block" style="margin-top:var(--s2)" id="lbBack">手入力に戻る</button>`);
+    $("#lbAgain").onclick = () => startLabel(photoMeal, draft);
+    $("#lbBack").onclick = () => openManual(photoMeal, draft.k || draft.name ? { ...draft, note: undefined } : null);
+  };
+  let res;
+  try {
+    const { readNutritionLabel } = await import("./photo-ai.js");
+    res = await readNutritionLabel({ apiKey: ai.apiKey, imageBase64: img.base64, mediaType: img.mediaType });
+  } catch (e) {
+    if (e.yen) recordAIUse(e.yen);
+    fail(e.name === "PhotoAIError" || e.constructor?.name === "PhotoAIError" ? e.message : "読み取れませんでした（" + (e.message || e) + "）");
+    return;
+  }
+  recordAIUse(res.yen);
+  if (!res.found) { fail(res.note || "栄養成分表示が見つかりませんでした。表示が大きく写るように撮ってください。"); return; }
+  if (sheet.dataset.run !== run || !sheet.classList.contains("open")) { toast("読み取りが終わりましたが、画面を閉じていたので入れていません"); return; }
+  const num = n => (n > 0 ? String(Math.round(n * 10) / 10) : "0");
+  openManual(photoMeal, {
+    name: draft.name || res.name || "",
+    unit: res.basis || draft.unit,
+    k: num(res.kcal), p: num(res.p), f: num(res.f), c: num(res.c),
+    note: `${res.note ? res.note + "。" : ""}（今回 約${Math.max(1, Math.round(res.yen))}円）`,
+  });
+}
 
 // 送る前に長い辺を 1280px に縮める。読み取りの精度はほぼ変わらず、送る量と料金が減る
 function shrinkImage(file, max = 1280) {
@@ -1455,6 +1608,8 @@ function renderHistory() {
   $("#kcalChart").innerHTML = barChart(rows, r => r.t.k, g.k, "var(--accent)");
   $("#pChart").innerHTML = barChart(rows, r => r.t.p, g.p, "var(--p)");
 
+  renderWeight(ds);
+
   // 平均は記録した日だけで割る（つけ忘れた日を0kcalとして数えない）
   const logged = rows.filter(r => r.n);
   const avg = { k: 0, p: 0, f: 0, c: 0 };
@@ -1469,6 +1624,75 @@ function renderHistory() {
       <span class="sub num">${pfcMini(t.p, t.f, t.c)}</span></button>`;
   }).join("") : '<div class="empty">まだ記録がない</div>';
 }
+
+// 体重。いちばん新しい値と、表示している期間での増減。グラフは記録のある日を線でつなぐ
+function renderWeight(ds) {
+  const all = Object.keys(state.weights).sort();
+  if (!all.length) {
+    $("#weightNow").innerHTML = "";
+    $("#weightChart").innerHTML = '<div class="empty">「記録」から体重を入れると、ここに推移が出る。いちばん新しい体重で目標も計算し直す</div>';
+    return;
+  }
+  const lastD = all[all.length - 1], last = state.weights[lastD];
+  const inRange = ds.filter(d => state.weights[d] != null);
+  let diff = "";
+  if (inRange.length > 1) {
+    const dv = state.weights[inRange[inRange.length - 1]] - state.weights[inRange[0]];
+    diff = `・${range}日で ${dv > 0 ? "+" : dv < 0 ? "−" : "±"}${Math.abs(dv).toFixed(1)}kg`;
+  }
+  $("#weightNow").innerHTML = `<b>${last.toFixed(1)} kg</b>${mdw(lastD)}${diff}`;
+  $("#weightChart").innerHTML = inRange.length ? lineChart(ds, d => state.weights[d]) : '<div class="empty">この期間の記録はまだない</div>';
+}
+function lineChart(ds, val) {
+  const W = 340, H = 130, pl = 34, pb = 18, pt = 8;
+  const vs = ds.map(val).filter(v => v != null);
+  let lo = Math.floor(Math.min(...vs) - 0.5), hi = Math.ceil(Math.max(...vs) + 0.5);
+  if (hi - lo < 2) { lo -= 1; hi += 1; }
+  const y = v => pt + (H - pt - pb) * (1 - (v - lo) / (hi - lo));
+  const bw = (W - pl) / ds.length, x = i => pl + bw * (i + .5);
+  const every = ds.length > 10 ? 5 : 1;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (const v of [lo, (lo + hi) / 2, hi]) s += `<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl - 4}" y="${y(v) + 3}" text-anchor="end">${Number.isInteger(v) ? v : v.toFixed(1)}</text>`;
+  const pts = ds.map((d, i) => [i, val(d)]).filter(p => p[1] != null);
+  s += `<polyline points="${pts.map(([i, v]) => `${x(i)},${y(v)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach(([i, v]) => { s += `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"><title>${mdw(ds[i])} ${v.toFixed(1)}kg</title></circle>`; });
+  ds.forEach((d, i) => { if ((ds.length - 1 - i) % every === 0) s += `<text x="${x(i)}" y="${H - 4}" text-anchor="middle">${parseYmd(d).getDate()}</text>`; });
+  return s + "</svg>";
+}
+// 体重を記録する。いちばん新しい日の値は「からだ」の体重にも入れて、目標を計算し直す
+function openWeight(d0) {
+  let d = d0 || ymd(new Date());
+  const latest = () => { const ks = Object.keys(state.weights).sort(); return ks.length ? state.weights[ks[ks.length - 1]] : state.profile.weight; };
+  const draw = () => {
+    const has = state.weights[d] != null;
+    openSheet("体重を記録", `
+      <div class="field"><label for="wDate">日付</label><input id="wDate" type="date" value="${d}" max="${ymd(new Date())}"></div>
+      <div class="field"><label for="wKg">体重 (kg)</label><input id="wKg" type="number" inputmode="decimal" step="0.1" min="25" max="250" value="${(has ? state.weights[d] : latest()).toFixed(1)}"></div>
+      <p class="hint">いちばん新しい日の体重は「目標」タブの体重にも入り、目標のカロリーと P が計算し直される。</p>
+      ${has ? '<button class="danger-row" id="wDelete">この日の記録を削除</button>' : ""}`, {
+      left: { id: "wCancel", label: "キャンセル" },
+      right: { id: "wSave", label: has ? "更新" : "保存", primary: true },
+    });
+    $("#wCancel").onclick = closeSheet;
+    $("#wDate").onchange = e => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { d = e.target.value; draw(); } };
+    $("#wSave").onclick = () => {
+      const kg = Math.round(parseFloat($("#wKg").value) * 10) / 10;
+      if (!(kg >= 25 && kg <= 250)) { $("#wKg").focus(); toast("体重を入れてください"); return; }
+      state.weights[d] = kg;
+      const newest = Object.keys(state.weights).sort().pop() === d;
+      if (newest) state.profile.weight = kg;
+      touchSettings(); save(); closeSheet(); renderAll();
+      toast(newest && state.mode === "auto" ? `${kg.toFixed(1)}kg を記録し、目標を計算し直しました` : `${kg.toFixed(1)}kg を記録しました`);
+    };
+    if (has) $("#wDelete").onclick = () => {
+      delete state.weights[d];
+      touchSettings(); save(); closeSheet(); renderAll();
+      toast("体重の記録を削除しました");
+    };
+  };
+  draw();
+}
+$("#weightBtn").onclick = () => openWeight();
 
 // 棒グラフ。目標を点線で重ね、目標の1.1倍を超えた日は棒を薄くする。記録のない日は棒を出さない
 function barChart(rows, val, goal, color) {
@@ -1514,6 +1738,12 @@ function renderSettings() {
       <button class="chip" data-delfood="${esc(f.id)}" style="color:var(--crit)">削除</button>
       <span class="sub num"><span>${esc(f.unit)}・${r0(f.k)} kcal</span>${pfcMini(f.p, f.f, f.c)}</span>
     </div></div>`).join("") : '<div class="empty">手入力で保存した食品がここに並ぶ</div>';
+
+  $("#setList").innerHTML = state.sets.length ? state.sets.map(st => `
+    <div class="item"><span class="n">${esc(st.name)}</span>
+      <button class="chip" data-delset="${esc(st.id)}" style="color:var(--crit)">削除</button>
+      <span class="sub num"><span class="names">${esc(st.items.map(e => e.name).join("、"))}</span><span>${r0(totals(st.items).k)} kcal</span></span>
+    </div>`).join("") : '<div class="empty">今日の画面で「セットに保存」した組み合わせがここに並ぶ</div>';
 }
 
 PF.forEach(k => $("#" + k).addEventListener("input", e => {
@@ -1537,6 +1767,17 @@ TF.forEach(([id, k]) => $("#" + id).addEventListener("input", e => {
 }));
 $("#myFoodList").onclick = e => {
   const b = e.target.closest("[data-delfood]"); if (b) deleteMyFood(b.dataset.delfood);
+};
+$("#setList").onclick = e => {
+  const b = e.target.closest("[data-delset]"); if (!b) return;
+  const i = state.sets.findIndex(x => x.id === b.dataset.delset);
+  if (i < 0) return;
+  const [st] = state.sets.splice(i, 1);
+  touchSettings(); save(); renderSettings();
+  toast(`${st.name}を削除しました`, () => {
+    state.sets.splice(Math.min(i, state.sets.length), 0, st);
+    touchSettings(); save(); renderSettings();
+  });
 };
 // マイ食品を消す（過去の記録は値を写して持っているので残る）。少しの間は「元に戻す」で戻せる
 function deleteMyFood(id) {
@@ -1567,11 +1808,11 @@ $("#importFile").onchange = async e => {
     const d = JSON.parse(await file.text());
     if (!d || typeof d.days !== "object") throw new Error("MEAL LOG の書き出しファイルではありません");
     if (!confirm("今のデータを、読み込んだファイルの内容で置き換えますか？")) return;
-    const { days, profile, mode, manual, myFoods, recent } = d;
+    const { days, profile, mode, manual, myFoods, recent, sets, weights } = d;
     // 読み込んだ内容を「今いちばん新しい」ものとして扱い、同期で他の端末へ広げる。
     // ファイルに無い日は空にして、クラウドから古い記録が戻ってこないようにする
     const before = Object.keys(state.days);
-    localStorage.setItem(KEY, JSON.stringify({ days, profile, mode, manual, myFoods, recent }));
+    localStorage.setItem(KEY, JSON.stringify({ days, profile, mode, manual, myFoods, recent, sets, weights }));
     state = load();
     for (const k of before) if (!state.days[k]) state.days[k] = [];
     Object.keys(state.days).forEach(touchDay);
@@ -1620,6 +1861,8 @@ $("#fab").onclick = () => { if (tab !== "today") showTab("today"); openPicker();
 $("#meals").onclick = e => {
   const add = e.target.closest("[data-add]");
   if (add) return openPicker(add.dataset.add);
+  const ss = e.target.closest("[data-saveset]");
+  if (ss) return openSaveSet(ss.dataset.saveset);
   const ed = e.target.closest("[data-edit]");
   if (ed) { const en = entriesOf(day).find(x => x.id === ed.dataset.edit); if (en) openAmount(null, en.meal, en); }
 };
